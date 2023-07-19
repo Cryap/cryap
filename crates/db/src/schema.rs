@@ -1,0 +1,148 @@
+// @generated automatically by Diesel CLI.
+
+pub mod sql_types {
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "visibility"))]
+    pub struct Visibility;
+}
+
+diesel::table! {
+    post_boost (ap_id) {
+        #[max_length = 200]
+        ap_id -> Varchar,
+        #[max_length = 27]
+        post_id -> Bpchar,
+        #[max_length = 27]
+        actor_id -> Bpchar,
+    }
+}
+
+diesel::table! {
+    post_like (ap_id) {
+        #[max_length = 200]
+        ap_id -> Varchar,
+        #[max_length = 27]
+        post_id -> Bpchar,
+        #[max_length = 27]
+        actor_id -> Bpchar,
+    }
+}
+
+diesel::table! {
+    post_mention (id) {
+        #[max_length = 27]
+        id -> Varchar,
+        #[max_length = 27]
+        post_id -> Bpchar,
+        #[max_length = 27]
+        mentioned_user_id -> Bpchar,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::Visibility;
+
+    posts (id) {
+        #[max_length = 27]
+        id -> Bpchar,
+        #[max_length = 27]
+        author -> Bpchar,
+        #[max_length = 200]
+        ap_id -> Varchar,
+        local_only -> Bool,
+        content_warning -> Nullable<Text>,
+        content -> Text,
+        sensitive -> Bool,
+        #[max_length = 27]
+        in_reply -> Nullable<Bpchar>,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+        #[max_length = 200]
+        url -> Varchar,
+        #[max_length = 27]
+        quote -> Nullable<Bpchar>,
+        visibility -> Visibility,
+    }
+}
+
+diesel::table! {
+    sessions (id) {
+        #[max_length = 27]
+        id -> Bpchar,
+        #[max_length = 60]
+        token -> Bpchar,
+        #[max_length = 27]
+        user_id -> Bpchar,
+        published -> Timestamp,
+    }
+}
+
+diesel::table! {
+    user_follow_requests (actor_id, follower_id) {
+        #[max_length = 27]
+        actor_id -> Bpchar,
+        #[max_length = 27]
+        follower_id -> Bpchar,
+    }
+}
+
+diesel::table! {
+    user_followers (actor_id, follower_id) {
+        #[max_length = 27]
+        actor_id -> Bpchar,
+        #[max_length = 27]
+        follower_id -> Bpchar,
+    }
+}
+
+diesel::table! {
+    users (id) {
+        #[max_length = 27]
+        id -> Bpchar,
+        #[max_length = 200]
+        ap_id -> Varchar,
+        local -> Bool,
+        #[max_length = 200]
+        inbox_uri -> Varchar,
+        #[max_length = 200]
+        shared_inbox_uri -> Nullable<Varchar>,
+        #[max_length = 200]
+        outbox_uri -> Varchar,
+        #[max_length = 200]
+        followers_uri -> Varchar,
+        #[max_length = 100]
+        name -> Varchar,
+        #[max_length = 100]
+        instance -> Varchar,
+        #[max_length = 100]
+        display_name -> Nullable<Varchar>,
+        bio -> Nullable<Text>,
+        password_encrypted -> Nullable<Text>,
+        admin -> Bool,
+        public_key -> Text,
+        private_key -> Nullable<Text>,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+    }
+}
+
+diesel::joinable!(post_boost -> posts (post_id));
+diesel::joinable!(post_boost -> users (actor_id));
+diesel::joinable!(post_like -> posts (post_id));
+diesel::joinable!(post_like -> users (actor_id));
+diesel::joinable!(post_mention -> posts (post_id));
+diesel::joinable!(post_mention -> users (mentioned_user_id));
+diesel::joinable!(posts -> users (author));
+diesel::joinable!(sessions -> users (user_id));
+
+diesel::allow_tables_to_appear_in_same_query!(
+    post_boost,
+    post_like,
+    post_mention,
+    posts,
+    sessions,
+    user_follow_requests,
+    user_followers,
+    users,
+);

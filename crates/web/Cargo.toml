@@ -1,0 +1,36 @@
+[package]
+name = "web"
+version = "0.1.0"
+edition = "2021"
+default-run = "web"
+
+[dependencies]
+anyhow = "1.0.71"
+axum = { version = "0.6.18", features = ["multipart", "ws", "headers", "macros"] }
+diesel-async = { version = "0.3.1", features = ["postgres", "deadpool"] }
+dotenvy = "0.15.7"
+env_logger = "0.10.0"
+hyper = { version = "0.14.26", features = ["full"] }
+lazy_static = "1.4.0"
+listenfd = "1.0.1"
+log = "0.4.18"
+redis = { version = "0.23.0", features = ["tokio", "bytes", "r2d2", "rand", "serde", "serde_json"] }
+rhai = "1.14.0"
+serde = "1.0.163"
+svix-ksuid = { version = "0.7.0", features = ["serde"] }
+tokio = { version = "1.28.2", features = ["full"] }
+toml = "0.7.4"
+tower = "0.4.13"
+db = { path = "../db" }
+diesel = { version = "2.1.0", features = ["postgres", "url", "without-deprecated", "serde_json", "chrono", "nightly-error-messages"] }
+chrono = { version = "0.4.26", features = ["serde"] }
+time = { version = "0.3.23" }
+serde_json = "1.0.97"
+activitypub_federation = { git = "https://github.com/LemmyNet/activitypub-federation-rust.git" , default-features = false, features = ["axum"] }
+async-trait = "0.1.68"
+url = { version = "2.4.0", features = ["serde"] }
+typed-builder = "0.14.0"
+enum_delegate = "0.2.0"
+#regex = { version = "1.9.1", features = ["unicode-case"] }
+serde_with = { version = "3.0.0", features = ["json"] }
+tower-http = { version = "0.4.1", features = ["fs"] }

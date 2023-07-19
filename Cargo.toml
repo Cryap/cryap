@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "crates/web",
+    "crates/db"
+]
+
+[workspace.package]
+name = "cryap"
+version = "0.0.1"

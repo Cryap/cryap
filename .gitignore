@@ -1,0 +1,7 @@
+/target
+/crates/web/target
+/migration/target
+/db
+result*
+.env
+docker-compose.yml.dev
