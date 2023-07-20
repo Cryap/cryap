@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use activitypub_federation::config::Data;
 use axum::{
     extract::{Extension, Path, Query, State},
     http::StatusCode,
@@ -12,9 +13,7 @@ use db::{
 };
 use serde::Deserialize;
 
-use crate::api::entities::Account;
-use crate::AppState;
-use crate::{api::ApiError, errors::AppError};
+use crate::{api::entities::Account, api::ApiError, common::follows, errors::AppError, AppState};
 
 // TODO: Fully implement https://docs.joinmastodon.org/methods/accounts/#verify_credentials
 pub async fn http_get_verify_credentials(
@@ -58,5 +57,27 @@ pub async fn http_get_get(
     match user {
         Some(user) => Ok(Json(Account::new(user)).into_response()),
         None => Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()),
+    }
+}
+
+// TODO: Fully implement https://docs.joinmastodon.org/methods/accounts/#follow
+pub async fn http_post_follow(
+    state: Data<Arc<AppState>>,
+    Path(id): Path<String>,
+    Extension(session): Extension<Session>,
+) -> Result<impl IntoResponse, AppError> {
+    let id = DbId::from(id);
+
+    let by = session.user(&state.db_pool).await?;
+    let to = User::by_id(&id, &state.db_pool).await?;
+
+    if let Some(to) = to {
+        follows::want_to_follow(by, to, &state).await?;
+        Ok(
+            ApiError::new("TODO: Return Relationship entity", StatusCode::NOT_FOUND)
+                .into_response(),
+        )
+    } else {
+        Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
     }
 }

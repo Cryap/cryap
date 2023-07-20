@@ -38,8 +38,6 @@ async fn http_get_webfinger(
     let mut connection = state.db_pool.get().await?;
     let resource = resource.resource;
 
-    println!("{}", resource);
-
     let name = extract_webfinger_name(&resource, &state)?;
     let user: User = schema::users::table
         .filter(schema::users::local.eq(true))
@@ -60,13 +58,12 @@ async fn http_get_webfinger(
 }
 
 pub fn app(federation_config: FederationConfig<Arc<AppState>>) -> Router {
-    //let serve_dir = ServeDir::new(format!("{}/../frontend/dist", env!("CARGO_MANIFEST_DIR")))
-    //    .not_found_service(ServeFile::new(format!(
-    //        "{}/../frontend/dist/index.html",
-    //        env!("CARGO_MANIFEST_DIR")
-    //    )));
+    let serve_dir = ServeDir::new(format!("{}/../frontend/dist", env!("CARGO_MANIFEST_DIR")))
+        .not_found_service(ServeFile::new(format!(
+            "{}/../frontend/dist/index.html",
+            env!("CARGO_MANIFEST_DIR")
+        )));
     let state = Arc::clone(&*federation_config);
-    let auth_middleware = from_fn_with_state(Arc::clone(&state), auth_middleware);
 
     Router::new()
         .route("/.well-known/webfinger", get(http_get_webfinger))
@@ -81,15 +78,23 @@ pub fn app(federation_config: FederationConfig<Arc<AppState>>) -> Router {
         .route("/api/login", post(auth::http_post_login))
         .route(
             "/api/v1/accounts/verify_credentials",
-            get(api::accounts::http_get_verify_credentials.layer(auth_middleware)),
+            get(api::accounts::http_get_verify_credentials
+                .layer(from_fn_with_state(Arc::clone(&state), auth_middleware))),
         )
         .route(
             "/api/v1/accounts/lookup",
             get(api::accounts::http_get_lookup),
         )
         .route("/api/v1/accounts/:id", get(api::accounts::http_get_get))
+        .route(
+            "/api/v1/accounts/:id/follow",
+            post(
+                api::accounts::http_post_follow
+                    .layer(from_fn_with_state(Arc::clone(&state), auth_middleware)),
+            ),
+        )
         //        .nest("/u", users())
         .with_state(state)
         .layer(FederationMiddleware::new(federation_config))
-       // .fallback_service(serve_dir)
+        .fallback_service(serve_dir)
 }

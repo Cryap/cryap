@@ -2,18 +2,13 @@ use std::sync::Arc;
 
 use activitypub_federation::http_signatures::generate_actor_keypair;
 use chrono::Utc;
-use db::{
-    models::user::{User},
-    schema::users,
-    types::DbId,
-};
+use db::{models::user::User, schema::users, types::DbId};
 use diesel::insert_into;
 use diesel_async::RunQueryDsl;
 
-use crate::ApUser;
-use crate::AppState;
+use crate::{ApUser, AppState};
 
-pub async fn register_user(
+pub async fn register(
     name: String,
     _password: String,
     bio: Option<String>,

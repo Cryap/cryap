@@ -17,6 +17,7 @@ use crate::{ap::objects::user::ApUser, AppState};
 pub struct Follow {
     pub actor: ObjectId<ApUser>,
     pub object: ObjectId<ApUser>,
+    pub to: Option<[ObjectId<ApUser>; 1]>,
     #[serde(rename = "type")]
     pub kind: FollowType,
     pub id: Url,
@@ -49,6 +50,7 @@ impl ActivityHandler for Follow {
             .values(vec![UserFollowersInsert {
                 actor_id: actor.id.clone(),
                 follower_id: followed.id.clone(),
+                ap_id: Some(self.id.to_string()),
             }])
             .on_conflict((user_followers::actor_id, user_followers::follower_id))
             .do_nothing()

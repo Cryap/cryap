@@ -3,8 +3,7 @@ use std::sync::Arc;
 use activitypub_federation::config::Data;
 use serde::{Deserialize, Serialize};
 
-use crate::users::register_user;
-use crate::AppState;
+use crate::{common::users, AppState};
 
 #[derive(Deserialize, Debug)]
 pub struct RpcRegisterUserData {
@@ -26,7 +25,7 @@ impl RpcRegisterUser {
         request: RpcRegisterUserData,
         data: &Data<Arc<AppState>>,
     ) -> RpcRegisterUserResponse {
-        let _ = register_user(
+        let _ = users::register(
             request.name,
             request.password,
             request.bio,

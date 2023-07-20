@@ -1,3 +1,5 @@
+use std::fmt;
+
 use diesel_derive_newtype::DieselNewType;
 use svix_ksuid::KsuidLike;
 
@@ -10,9 +12,9 @@ impl Default for DbId {
     }
 }
 
-impl ToString for DbId {
-    fn to_string(&self) -> String {
-        self.0.clone()
+impl fmt::Display for DbId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 

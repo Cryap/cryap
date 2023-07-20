@@ -84,6 +84,9 @@ diesel::table! {
         actor_id -> Bpchar,
         #[max_length = 27]
         follower_id -> Bpchar,
+        #[max_length = 200]
+        ap_id -> Nullable<Varchar>,
+        published -> Timestamp,
     }
 }
 
@@ -93,6 +96,9 @@ diesel::table! {
         actor_id -> Bpchar,
         #[max_length = 27]
         follower_id -> Bpchar,
+        #[max_length = 200]
+        ap_id -> Nullable<Varchar>,
+        published -> Timestamp,
     }
 }
 

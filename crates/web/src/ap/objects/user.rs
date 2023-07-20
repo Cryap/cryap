@@ -93,11 +93,7 @@ impl Object for ApUser {
             preferred_username: self.name.clone(),
             inbox: Url::parse(&self.inbox_uri)?,
             outbox: Url::parse(&self.outbox_uri)?,
-            public_key: PublicKey {
-                id: self.ap_id.clone() + "#main_key",
-                owner: Url::parse(&self.ap_id)?,
-                public_key_pem: self.0.public_key,
-            },
+            public_key: self.public_key(),
             summary: bio.or(Some("".to_string())),
             updated: updated.map(|f| DateTime::<Utc>::from_utc(f, Utc)),
             published: Some(DateTime::<Utc>::from_utc(published, Utc)),
@@ -179,5 +175,12 @@ impl Actor for ApUser {
 
     fn inbox(&self) -> Url {
         Url::parse(&self.inbox_uri).unwrap() // should never panic in theory
+    }
+
+    fn shared_inbox(&self) -> Option<Url> {
+        match &self.shared_inbox_uri {
+            Some(shared_inbox_uri) => Some(Url::parse(shared_inbox_uri).unwrap()), // should never panic in theory
+            None => None,
+        }
     }
 }

@@ -8,9 +8,9 @@ use ap::objects::user::ApUser;
 use dotenvy::dotenv;
 use listenfd::ListenFd;
 mod api;
+mod common;
 mod routers;
 mod rpc;
-mod users;
 
 mod ap;
 mod errors;

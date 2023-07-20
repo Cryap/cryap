@@ -4,11 +4,11 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 pub mod accept;
+pub mod announce;
 pub mod create;
 pub mod follow;
-pub mod undo;
 pub mod like;
-pub mod announce;
+pub mod undo;
 
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(untagged)]

@@ -72,6 +72,7 @@ impl ActivityHandler for AcceptFollow {
             .values(vec![UserFollowersInsert {
                 actor_id: actor.id.clone(),
                 follower_id: followed.id.clone(),
+                ap_id: Some(self.object.id.to_string()),
             }])
             .on_conflict((user_followers::actor_id, user_followers::follower_id))
             .do_nothing()
