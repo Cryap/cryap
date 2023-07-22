@@ -45,9 +45,9 @@ impl ActivityHandler for AcceptFollow {
 
     async fn verify(&self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
         let actor_accept = self.actor.dereference(data).await?;
-        let actor_follow = self.object.actor.dereference(data).await?;
+        let object_follow = self.object.object.dereference(data).await?;
 
-        if actor_accept.id != actor_follow.id {
+        if actor_accept.id != object_follow.id {
             return Err(anyhow::anyhow!("Invalid Accept activity..."));
         }
 

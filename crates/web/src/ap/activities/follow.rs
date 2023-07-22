@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use activitypub_federation::{
-    config::Data, fetch::object_id::ObjectId, kinds::activity::FollowType, traits::ActivityHandler,
+    config::Data, fetch::object_id::ObjectId, kinds::activity::FollowType,
+    protocol::helpers::deserialize_skip_error, traits::ActivityHandler,
 };
 use async_trait::async_trait;
 use db::{models::UserFollowersInsert, schema::user_followers, schema::user_followers::dsl};
@@ -17,6 +18,7 @@ use crate::{ap::objects::user::ApUser, AppState};
 pub struct Follow {
     pub actor: ObjectId<ApUser>,
     pub object: ObjectId<ApUser>,
+    #[serde(deserialize_with = "deserialize_skip_error", default)]
     pub to: Option<[ObjectId<ApUser>; 1]>,
     #[serde(rename = "type")]
     pub kind: FollowType,
