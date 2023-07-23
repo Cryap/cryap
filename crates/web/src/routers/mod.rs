@@ -2,6 +2,7 @@ mod api;
 mod auth;
 mod middleware;
 mod users;
+mod activitypub;
 
 use std::sync::Arc;
 
@@ -21,6 +22,7 @@ use diesel_async::RunQueryDsl;
 use serde::Deserialize;
 use tower_http::services::{ServeDir, ServeFile};
 use url::Url;
+use tower_http::trace::TraceLayer;
 
 use crate::api::auth_middleware;
 use crate::errors::AppError;
@@ -75,6 +77,7 @@ pub fn app(federation_config: FederationConfig<Arc<AppState>>) -> Router {
             ),
         )
         .route("/u/:name", get(users::http_get_user))
+        .route("/ap/actor", get(activitypub::http_get_service_actor))
         .route("/api/login", post(auth::http_post_login))
         .route(
             "/api/v1/accounts/verify_credentials",
@@ -103,5 +106,6 @@ pub fn app(federation_config: FederationConfig<Arc<AppState>>) -> Router {
         //        .nest("/u", users())
         .with_state(state)
         .layer(FederationMiddleware::new(federation_config))
+        .layer(TraceLayer::new_for_http())
         .fallback_service(serve_dir)
 }

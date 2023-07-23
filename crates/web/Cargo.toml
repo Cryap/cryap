@@ -33,4 +33,4 @@ typed-builder = "0.14.0"
 enum_delegate = "0.2.0"
 #regex = { version = "1.9.1", features = ["unicode-case"] }
 serde_with = { version = "3.0.0", features = ["json"] }
-tower-http = { version = "0.4.1", features = ["fs"] }
+tower-http = { version = "0.4.1", features = ["fs", "trace"] }

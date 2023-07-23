@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use activitypub_federation::{
-    activity_queue::send_activity, config::Data, fetch::object_id::ObjectId, traits::Actor,
+    activity_queue::send_activity, config::Data, fetch::object_id::ObjectId,
+    protocol::context::WithContext, traits::Actor,
 };
 use db::{
     models::{user::User, UserFollowRequestsInsert},
@@ -26,7 +27,7 @@ pub async fn want_to_follow(
     let id = Url::parse(&format!(
         "{}/activities/follows/{}",
         by.ap_id,
-        DbId::default()
+        DbId::default().to_string()
     ))?;
     let activity = Follow {
         id: id.clone(),

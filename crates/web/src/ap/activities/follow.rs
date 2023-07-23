@@ -9,10 +9,12 @@ use db::{models::UserFollowersInsert, schema::user_followers, schema::user_follo
 use diesel::insert_into;
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use url::Url;
 
 use crate::{ap::objects::user::ApUser, AppState};
 
+#[skip_serializing_none]
 #[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Follow {

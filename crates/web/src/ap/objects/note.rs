@@ -32,6 +32,7 @@ use super::user::ApUser;
 use crate::AppState;
 
 kind!(HashtagType, Hashtag);
+kind!(EmojiType, Emoji);
 
 db_to_ap!(db::models::Post, ApNote);
 
@@ -40,6 +41,14 @@ db_to_ap!(db::models::Post, ApNote);
 pub enum NoteTags {
     Mention(Mention),
     Hashtag(Hashtag),
+    Emoji(Emoji),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Emoji {
+    #[serde(rename = "type")]
+    pub kind: EmojiType,
+    pub name: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
