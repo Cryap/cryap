@@ -27,7 +27,7 @@ impl Account {
                 format!("{}@{}", user.name, user.instance)
             },
             created_at: user.published,
-            note: user.bio.unwrap_or(String::from("")),
+            note: user.bio.unwrap_or(String::new()),
         }
     }
 }

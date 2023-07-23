@@ -90,7 +90,7 @@ pub async fn http_post_follow(
                 following: false,
                 followed_by: to.follows(&by, &state.db_pool).await?,
                 requested: true,
-                note: String::from(""),
+                note: String::new(),
             })
             .into_response())
         } else {
@@ -99,10 +99,40 @@ pub async fn http_post_follow(
                 following: true,
                 followed_by: to.follows(&by, &state.db_pool).await?,
                 requested: false,
-                note: String::from(""),
+                note: String::new(),
             })
             .into_response())
         }
+    } else {
+        Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
+    }
+}
+
+// https://docs.joinmastodon.org/methods/accounts/#unfollow
+pub async fn http_post_unfollow(
+    state: Data<Arc<AppState>>,
+    Path(id): Path<String>,
+    Extension(session): Extension<Session>,
+) -> Result<impl IntoResponse, AppError> {
+    let id = DbId::from(id);
+
+    let by = session.user(&state.db_pool).await?;
+    let to = User::by_id(&id, &state.db_pool).await?;
+
+    if let Some(to) = to {
+        if by.follows(&to, &state.db_pool).await? || by.wants_to_follow(&to, &state.db_pool).await?
+        {
+            follows::unfollow(&by, &to, &state).await?;
+        }
+
+        Ok(Json(Relationship {
+            id: to.id.to_string(),
+            following: false,
+            followed_by: to.follows(&by, &state.db_pool).await?,
+            requested: false,
+            note: String::new(),
+        })
+        .into_response())
     } else {
         Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
     }

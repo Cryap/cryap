@@ -93,6 +93,13 @@ pub fn app(federation_config: FederationConfig<Arc<AppState>>) -> Router {
                     .layer(from_fn_with_state(Arc::clone(&state), auth_middleware)),
             ),
         )
+        .route(
+            "/api/v1/accounts/:id/unfollow",
+            post(
+                api::accounts::http_post_unfollow
+                    .layer(from_fn_with_state(Arc::clone(&state), auth_middleware)),
+            ),
+        )
         //        .nest("/u", users())
         .with_state(state)
         .layer(FederationMiddleware::new(federation_config))

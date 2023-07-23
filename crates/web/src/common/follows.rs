@@ -5,14 +5,17 @@ use activitypub_federation::{
 };
 use db::{
     models::{user::User, UserFollowRequestsInsert},
-    schema::{user_follow_requests, user_follow_requests::dsl},
+    schema::{user_follow_requests, user_followers},
     types::DbId,
 };
-use diesel::insert_into;
+use diesel::{delete, insert_into, result::Error::NotFound, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use url::Url;
 
-use crate::{ap::activities::follow::Follow, ApUser, AppState};
+use crate::{
+    ap::activities::{follow::Follow, undo::follow::UndoFollow},
+    ApUser, AppState,
+};
 
 pub async fn want_to_follow(
     by: &User,
@@ -39,7 +42,7 @@ pub async fn want_to_follow(
     let inboxes = vec![to.inbox()];
     send_activity(activity, &by, inboxes, &data).await?;
 
-    insert_into(dsl::user_follow_requests)
+    insert_into(user_follow_requests::dsl::user_follow_requests)
         .values(vec![UserFollowRequestsInsert {
             actor_id: by.id.clone(),
             follower_id: to.id.clone(),
@@ -56,6 +59,74 @@ pub async fn want_to_follow(
     Ok(())
 }
 
-pub async fn unfollow(by: User, to: User, data: &Arc<AppState>) -> Result<(), anyhow::Error> {
+pub async fn unfollow(
+    by: &User,
+    to: &User,
+    data: &Data<Arc<AppState>>,
+) -> Result<(), anyhow::Error> {
+    let mut conn = data.db_pool.get().await?;
+    let undo_id = Url::parse(&format!(
+        "{}/activities/undo/follows/{}",
+        by.ap_id,
+        DbId::default()
+    ))?;
+    let follow_id = user_followers::table
+        .select(user_followers::ap_id)
+        .filter(user_followers::actor_id.eq(by.id.clone()))
+        .filter(user_followers::follower_id.eq(to.id.clone()))
+        .first::<Option<String>>(&mut conn)
+        .await;
+    let follow_id = Url::parse(
+        &match follow_id {
+            Ok(follow_id) => follow_id,
+            Err(NotFound) => {
+                user_follow_requests::table
+                    .select(user_follow_requests::ap_id)
+                    .filter(user_follow_requests::actor_id.eq(by.id.clone()))
+                    .filter(user_follow_requests::follower_id.eq(to.id.clone()))
+                    .first::<Option<String>>(&mut conn)
+                    .await?
+            }
+            Err(err) => return Err(err.into()),
+        }
+        .unwrap_or_else(|| String::new()),
+    )?;
+
+    let activity = UndoFollow {
+        actor: ObjectId::<ApUser>::from(Url::parse(&by.ap_id)?),
+        to: Some([ObjectId::<ApUser>::from(Url::parse(&to.ap_id)?)]),
+        object: Follow {
+            id: follow_id,
+            kind: Default::default(),
+            actor: ObjectId::<ApUser>::from(Url::parse(&by.ap_id)?),
+            object: ObjectId::<ApUser>::from(Url::parse(&to.ap_id)?),
+            to: Some([ObjectId::<ApUser>::from(Url::parse(&to.ap_id)?)]),
+        },
+        kind: Default::default(),
+        id: undo_id,
+    };
+
+    let by = ApUser(by.clone());
+    let to = ApUser(to.clone());
+
+    let inboxes = vec![to.inbox()];
+    send_activity(activity, &by, inboxes, &data).await?;
+
+    let _ = delete(
+        user_follow_requests::dsl::user_follow_requests
+            .filter(user_follow_requests::actor_id.eq(by.id.clone()))
+            .filter(user_follow_requests::follower_id.eq(to.id.clone())),
+    )
+    .execute(&mut conn)
+    .await;
+
+    let _ = delete(
+        user_followers::dsl::user_followers
+            .filter(user_followers::actor_id.eq(by.id.clone()))
+            .filter(user_followers::follower_id.eq(to.id.clone())),
+    )
+    .execute(&mut conn)
+    .await;
+
     Ok(())
 }
