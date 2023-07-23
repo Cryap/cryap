@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use activitypub_federation::{
-    config::Data, fetch::object_id::ObjectId, kinds::activity::UndoType,
+    config::Data, fetch::object_id::ObjectId, kinds::activity::RejectType,
     protocol::helpers::deserialize_skip_error, traits::ActivityHandler,
 };
 use async_trait::async_trait;
@@ -18,18 +18,18 @@ use crate::{
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct UndoFollow {
+pub struct RejectFollow {
     pub(crate) actor: ObjectId<ApUser>,
     #[serde(deserialize_with = "deserialize_skip_error", default)]
     pub(crate) to: Option<[ObjectId<ApUser>; 1]>,
     pub(crate) object: Follow,
     #[serde(rename = "type")]
-    pub(crate) kind: UndoType,
+    pub(crate) kind: RejectType,
     pub(crate) id: Url,
 }
 
 #[async_trait]
-impl ActivityHandler for UndoFollow {
+impl ActivityHandler for RejectFollow {
     type DataType = Arc<AppState>;
     type Error = anyhow::Error;
 
@@ -42,11 +42,11 @@ impl ActivityHandler for UndoFollow {
     }
 
     async fn verify(&self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
-        let actor_undo = self.actor.dereference(data).await?;
-        let actor_follow = self.object.actor.dereference(data).await?;
+        let actor_reject = self.actor.dereference(data).await?;
+        let object_follow = self.object.object.dereference(data).await?;
 
-        if actor_undo.id != actor_follow.id {
-            return Err(anyhow::anyhow!("Invalid UndoFollow activity..."));
+        if actor_reject.id != object_follow.id {
+            return Err(anyhow::anyhow!("Invalid RejectFollow activity..."));
         }
 
         Ok(())
@@ -60,16 +60,16 @@ impl ActivityHandler for UndoFollow {
 
         let _ = delete(
             user_follow_requests
-                .filter(schema::user_follow_requests::actor_id.eq(actor.id.clone()))
-                .filter(schema::user_follow_requests::follower_id.eq(followed.id.clone())),
+                .filter(schema::user_follow_requests::actor_id.eq(followed.id.clone()))
+                .filter(schema::user_follow_requests::follower_id.eq(actor.id.clone())),
         )
         .execute(&mut conn)
         .await;
 
         let _ = delete(
             dsl::user_followers
-                .filter(schema::user_followers::actor_id.eq(actor.id.clone()))
-                .filter(schema::user_followers::follower_id.eq(followed.id.clone())),
+                .filter(schema::user_followers::actor_id.eq(followed.id.clone()))
+                .filter(schema::user_followers::follower_id.eq(actor.id.clone())),
         )
         .execute(&mut conn)
         .await;

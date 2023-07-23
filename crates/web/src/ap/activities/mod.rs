@@ -8,6 +8,7 @@ pub mod announce;
 pub mod create;
 pub mod follow;
 pub mod like;
+pub mod reject;
 pub mod undo;
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -17,6 +18,7 @@ pub enum UserInbox {
     Follow(follow::Follow),
     AcceptFollow(accept::follow::AcceptFollow),
     UndoFollow(undo::follow::UndoFollow),
+    RejectFollow(reject::follow::RejectFollow),
     CreateNote(create::note::CreateNote),
     Like(like::Like),
     UndoLike(undo::like::UndoLike),
