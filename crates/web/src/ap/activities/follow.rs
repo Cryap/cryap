@@ -1,18 +1,27 @@
 use std::sync::Arc;
 
 use activitypub_federation::{
-    config::Data, fetch::object_id::ObjectId, kinds::activity::FollowType,
-    protocol::helpers::deserialize_skip_error, traits::ActivityHandler,
+    activity_queue::send_activity,
+    config::Data,
+    fetch::object_id::ObjectId,
+    kinds::activity::FollowType,
+    protocol::helpers::deserialize_skip_error,
+    traits::{ActivityHandler, Actor},
 };
 use async_trait::async_trait;
-use db::{models::UserFollowersInsert, schema::user_followers, schema::user_followers::dsl};
+use db::{
+    models::UserFollowersInsert, schema::user_followers, schema::user_followers::dsl, types::DbId,
+};
 use diesel::insert_into;
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use crate::{ap::objects::user::ApUser, AppState};
+use crate::{
+    ap::{activities::accept::follow::AcceptFollow, objects::user::ApUser},
+    AppState,
+};
 
 #[skip_serializing_none]
 #[derive(Deserialize, Serialize, Clone, Debug)]
@@ -61,17 +70,20 @@ impl ActivityHandler for Follow {
             .execute(&mut conn)
             .await?;
 
-        // TODO: Send Accept activity
-        //
-        //let activity = AcceptFollow {
-        //    actor: ObjectId::parse::<ApUser>(followed.id.into())?,
-        //    object: self,
-        //    kind: Default::default(),
-        //    to: Some([ObjectId::parse::<ApUser>( Url::parse(actor.id)? )?]),
-        //    id: "https://lemmy.ml/activities/321".try_into()?,
-        //};
-        //let inboxes = vec![recipient.shared_inbox_or_inbox()];
-        //send_activity(activity, &followed, inboxes, &data).await?;
+        let activity = AcceptFollow {
+            actor: ObjectId::<ApUser>::from(Url::parse(&followed.ap_id)?),
+            object: self,
+            kind: Default::default(),
+            to: Some([ObjectId::<ApUser>::from(Url::parse(&actor.ap_id)?)]),
+            id: Url::parse(&format!(
+                "{}/activities/accepts/follows/{}",
+                followed.ap_id,
+                DbId::default().to_string()
+            ))?,
+        };
+
+        let inboxes = vec![actor.shared_inbox_or_inbox()];
+        send_activity(activity, &followed, inboxes, &data).await?;
 
         Ok(())
     }
