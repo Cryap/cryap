@@ -40,7 +40,7 @@ pub async fn want_to_follow(
     let by = ApUser(by.clone());
     let to = ApUser(to.clone());
 
-    let inboxes = vec![to.inbox()];
+    let inboxes = vec![to.shared_inbox_or_inbox()];
     send_activity(activity, &by, inboxes, &data).await?;
 
     insert_into(user_follow_requests::dsl::user_follow_requests)
@@ -110,7 +110,7 @@ pub async fn unfollow(
     let by = ApUser(by.clone());
     let to = ApUser(to.clone());
 
-    let inboxes = vec![to.inbox()];
+    let inboxes = vec![to.shared_inbox_or_inbox()];
     send_activity(activity, &by, inboxes, &data).await?;
 
     let _ = delete(
