@@ -1,8 +1,8 @@
+mod activitypub;
 mod api;
 mod auth;
 mod middleware;
 mod users;
-mod activitypub;
 
 use std::sync::Arc;
 
@@ -21,8 +21,8 @@ use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
 use serde::Deserialize;
 use tower_http::services::{ServeDir, ServeFile};
-use url::Url;
 use tower_http::trace::TraceLayer;
+use url::Url;
 
 use crate::api::auth_middleware;
 use crate::errors::AppError;

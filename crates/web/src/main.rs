@@ -3,8 +3,7 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use activitypub_federation::config::{Data, FederationConfig};
-use activitypub_federation::fetch::object_id::ObjectId;
+use activitypub_federation::config::FederationConfig;
 use activitypub_federation::http_signatures::{generate_actor_keypair, Keypair};
 use ap::objects::user::ApUser;
 use dotenvy::dotenv;

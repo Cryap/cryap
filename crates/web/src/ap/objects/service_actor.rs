@@ -9,15 +9,8 @@ use activitypub_federation::{
     traits::{Actor, Object},
 };
 use anyhow::anyhow;
-use chrono::{DateTime, Utc};
-use db::{models::User, schema::users, types::DbId};
-use diesel::ExpressionMethods;
-use diesel::{insert_into, query_dsl::QueryDsl, result::Error::NotFound};
-use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
-use serde_with::NoneAsEmptyString;
-use svix_ksuid::KsuidLike;
+use serde_with::{serde_as, NoneAsEmptyString};
 use url::Url;
 
 use super::user::Endpoints;
@@ -75,8 +68,8 @@ impl Object for ServiceActor {
     type Error = anyhow::Error;
 
     async fn read_from_id(
-        object_id: Url,
-        data: &Data<Self::DataType>,
+        _object_id: Url,
+        _data: &Data<Self::DataType>,
     ) -> Result<Option<Self>, Self::Error> {
         Err(anyhow!("ServiceActor - singleton"))
     }
@@ -95,8 +88,6 @@ impl Object for ServiceActor {
     }
 
     async fn from_json(json: Self::Kind, data: &Data<Self::DataType>) -> Result<Self, Self::Error> {
-        let mut conn = data.db_pool.get().await?;
-
         Ok(json)
     }
 }

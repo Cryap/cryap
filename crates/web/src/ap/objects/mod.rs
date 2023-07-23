@@ -20,5 +20,5 @@ macro_rules! db_to_ap {
 }
 
 pub mod note;
-pub mod user;
 pub mod service_actor;
+pub mod user;
