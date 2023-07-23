@@ -58,20 +58,20 @@ impl ActivityHandler for AcceptFollow {
         let mut conn = data.db_pool.get().await?;
 
         let actor = self.actor.dereference(data).await?;
-        let followed = self.object.object.dereference(data).await?;
+        let followed = self.object.actor.dereference(data).await?;
 
         let _ = delete(
             user_follow_requests
-                .filter(schema::user_follow_requests::actor_id.eq(actor.id.clone()))
-                .filter(schema::user_follow_requests::follower_id.eq(followed.id.clone())),
+                .filter(schema::user_follow_requests::actor_id.eq(followed.id.clone()))
+                .filter(schema::user_follow_requests::follower_id.eq(actor.id.clone())),
         )
         .execute(&mut conn)
         .await;
 
         insert_into(dsl::user_followers)
             .values(vec![UserFollowersInsert {
-                actor_id: actor.id.clone(),
-                follower_id: followed.id.clone(),
+                actor_id: followed.id.clone(),
+                follower_id: actor.id.clone(),
                 ap_id: Some(self.object.id.to_string()),
             }])
             .on_conflict((user_followers::actor_id, user_followers::follower_id))

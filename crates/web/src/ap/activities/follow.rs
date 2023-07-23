@@ -76,7 +76,7 @@ impl ActivityHandler for Follow {
             kind: Default::default(),
             to: Some([ObjectId::<ApUser>::from(Url::parse(&actor.ap_id)?)]),
             id: Url::parse(&format!(
-                "{}/activities/accepts/follows/{}",
+                "{}/activities/accept/follows/{}",
                 followed.ap_id,
                 DbId::default().to_string()
             ))?,
