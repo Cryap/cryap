@@ -1,9 +1,9 @@
+pub mod interactions;
 pub mod post;
 pub mod session;
 pub mod user;
 pub mod user_follow_requests;
 pub mod user_followers;
-pub mod interactions;
 
 pub use post::Post;
 pub use post::PostMention;
