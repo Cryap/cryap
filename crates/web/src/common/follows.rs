@@ -15,8 +15,8 @@ use url::Url;
 use crate::{ap::activities::follow::Follow, ApUser, AppState};
 
 pub async fn want_to_follow(
-    by: User,
-    to: User,
+    by: &User,
+    to: &User,
     data: &Data<Arc<AppState>>,
 ) -> Result<(), anyhow::Error> {
     let mut conn = data.db_pool.get().await?;
@@ -33,8 +33,8 @@ pub async fn want_to_follow(
         to: Some([ObjectId::<ApUser>::from(Url::parse(&to.ap_id)?)]),
     };
 
-    let by = ApUser(by);
-    let to = ApUser(to);
+    let by = ApUser(by.clone());
+    let to = ApUser(to.clone());
 
     let inboxes = vec![to.inbox()];
     send_activity(activity, &by, inboxes, &data).await?;

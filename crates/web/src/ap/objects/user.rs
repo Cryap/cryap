@@ -50,6 +50,7 @@ pub struct Person {
     pub(crate) public_key: PublicKey,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) endpoints: Option<Endpoints>,
+    pub(crate) manually_approves_followers: bool,
 
     /// displayname
     pub(crate) name: Option<String>,
@@ -98,6 +99,7 @@ impl Object for ApUser {
             updated: updated.map(|f| DateTime::<Utc>::from_utc(f, Utc)),
             published: Some(DateTime::<Utc>::from_utc(published, Utc)),
             endpoints: None,
+            manually_approves_followers: self.manually_approves_followers,
             followers: Url::parse(&(ap_id.clone() + "/ap/followers"))?, // TODO
             following: Url::parse(&(ap_id + "/ap/following"))?,         // TODO
         })
@@ -146,6 +148,7 @@ impl Object for ApUser {
                 .map(|f| f.naive_utc())
                 .unwrap_or(Utc::now().naive_utc()),
             updated: Some(Utc::now().naive_utc()),
+            manually_approves_followers: json.manually_approves_followers,
         };
 
         Ok(ApUser(

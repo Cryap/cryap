@@ -38,6 +38,7 @@ pub async fn register(
         private_key: Some(keypair.private_key),
         published: Utc::now().naive_utc(),
         updated: Some(Utc::now().naive_utc()),
+        manually_approves_followers: false,
     };
 
     Ok(ApUser(

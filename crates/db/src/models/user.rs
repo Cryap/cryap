@@ -1,9 +1,14 @@
-use diesel::{prelude::*, result::Error::NotFound};
+use diesel::{dsl::sql, prelude::*, result::Error::NotFound, sql_types::Bool};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
-use crate::{schema::users, types::DbId};
+use crate::{
+    schema::{user_follow_requests, user_followers, users},
+    types::DbId,
+};
 
-#[derive(Queryable, Identifiable, Selectable, Insertable, AsChangeset, Debug, PartialEq, Clone, Eq)]
+#[derive(
+    Queryable, Identifiable, Selectable, Insertable, AsChangeset, Debug, PartialEq, Clone, Eq,
+)]
 #[diesel(table_name = users)]
 pub struct User {
     pub id: DbId,
@@ -23,6 +28,7 @@ pub struct User {
     pub private_key: Option<String>,
     pub published: chrono::NaiveDateTime,
     pub updated: Option<chrono::NaiveDateTime>,
+    pub manually_approves_followers: bool,
 }
 
 impl User {
@@ -95,6 +101,42 @@ impl User {
         match user {
             Ok(user) => Ok(Some(user)),
             Err(NotFound) => Ok(None),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    pub async fn follows(
+        &self,
+        user: &User,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> Result<bool, anyhow::Error> {
+        let result = user_followers::table
+            .select(sql::<Bool>("true"))
+            .filter(user_followers::actor_id.eq(&self.id))
+            .filter(user_followers::follower_id.eq(&user.id))
+            .first::<bool>(&mut db_pool.get().await?)
+            .await;
+        match result {
+            Ok(_) => Ok(true),
+            Err(NotFound) => Ok(false),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    pub async fn wants_to_follow(
+        &self,
+        user: &User,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> Result<bool, anyhow::Error> {
+        let result = user_follow_requests::table
+            .select(sql::<Bool>("true"))
+            .filter(user_follow_requests::actor_id.eq(&self.id))
+            .filter(user_follow_requests::follower_id.eq(&user.id))
+            .first::<bool>(&mut db_pool.get().await?)
+            .await;
+        match result {
+            Ok(_) => Ok(true),
+            Err(NotFound) => Ok(false),
             Err(err) => Err(err.into()),
         }
     }

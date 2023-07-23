@@ -13,7 +13,13 @@ use db::{
 };
 use serde::Deserialize;
 
-use crate::{api::entities::Account, api::ApiError, common::follows, errors::AppError, AppState};
+use crate::{
+    api::entities::{Account, Relationship},
+    api::ApiError,
+    common::follows,
+    errors::AppError,
+    AppState,
+};
 
 // TODO: Fully implement https://docs.joinmastodon.org/methods/accounts/#verify_credentials
 pub async fn http_get_verify_credentials(
@@ -72,11 +78,31 @@ pub async fn http_post_follow(
     let to = User::by_id(&id, &state.db_pool).await?;
 
     if let Some(to) = to {
-        follows::want_to_follow(by, to, &state).await?;
-        Ok(
-            ApiError::new("TODO: Return Relationship entity", StatusCode::NOT_FOUND)
-                .into_response(),
-        )
+        if !by.follows(&to, &state.db_pool).await?
+            && !by.wants_to_follow(&to, &state.db_pool).await?
+        {
+            follows::want_to_follow(&by, &to, &state).await?;
+        }
+
+        if to.manually_approves_followers {
+            Ok(Json(Relationship {
+                id: to.id.to_string(),
+                following: false,
+                followed_by: to.follows(&by, &state.db_pool).await?,
+                requested: true,
+                note: String::from(""),
+            })
+            .into_response())
+        } else {
+            Ok(Json(Relationship {
+                id: to.id.to_string(),
+                following: true,
+                followed_by: to.follows(&by, &state.db_pool).await?,
+                requested: false,
+                note: String::from(""),
+            })
+            .into_response())
+        }
     } else {
         Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
     }

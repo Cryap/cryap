@@ -130,6 +130,7 @@ diesel::table! {
         private_key -> Nullable<Text>,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
+        manually_approves_followers -> Bool,
     }
 }
 
