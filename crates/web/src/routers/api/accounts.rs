@@ -137,3 +137,33 @@ pub async fn http_post_unfollow(
         Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
     }
 }
+
+// https://docs.joinmastodon.org/methods/accounts/#remove_from_followers
+pub async fn http_post_remove_from_followers(
+    state: Data<Arc<AppState>>,
+    Path(id): Path<String>,
+    Extension(session): Extension<Session>,
+) -> Result<impl IntoResponse, AppError> {
+    let id = DbId::from(id);
+
+    let by = session.user(&state.db_pool).await?;
+    let to = User::by_id(&id, &state.db_pool).await?;
+
+    if let Some(to) = to {
+        if to.follows(&by, &state.db_pool).await? || to.wants_to_follow(&by, &state.db_pool).await?
+        {
+            follows::remove_from_followers(&by, &to, &state).await?;
+        }
+
+        Ok(Json(Relationship {
+            id: to.id.to_string(),
+            following: by.follows(&to, &state.db_pool).await?,
+            followed_by: false,
+            requested: by.wants_to_follow(&to, &state.db_pool).await?,
+            note: String::new(),
+        })
+        .into_response())
+    } else {
+        Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
+    }
+}
