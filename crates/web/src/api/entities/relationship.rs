@@ -1,3 +1,5 @@
+use db::models::User;
+use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection};
 use serde::Serialize;
 
 // TODO: Fully implement https://docs.joinmastodon.org/entities/Relationship/
@@ -8,4 +10,20 @@ pub struct Relationship {
     pub followed_by: bool,
     pub requested: bool,
     pub note: String,
+}
+
+impl Relationship {
+    pub async fn build(
+        by: &User,
+        to: &User,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> Result<Self, anyhow::Error> {
+        Ok(Self {
+            id: to.id.to_string(),
+            following: by.follows(to, db_pool).await?,
+            followed_by: to.follows(by, db_pool).await?,
+            requested: by.wants_to_follow(to, db_pool).await?,
+            note: String::new(),
+        })
+    }
 }

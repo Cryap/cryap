@@ -110,6 +110,11 @@ pub fn app(federation_config: FederationConfig<Arc<AppState>>) -> Router {
                     .layer(from_fn_with_state(Arc::clone(&state), auth_middleware)),
             ),
         )
+        .route(
+            "/api/v1/accounts/relationships",
+            get(api::accounts::http_get_relationships
+                .layer(from_fn_with_state(Arc::clone(&state), auth_middleware))),
+        )
         //        .nest("/u", users())
         .with_state(state)
         .layer(FederationMiddleware::new(federation_config))

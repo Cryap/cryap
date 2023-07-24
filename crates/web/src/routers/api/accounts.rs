@@ -7,10 +7,12 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use axum_extra::extract::Query as QueryExtra;
 use db::{
     models::{Session, User},
     types::DbId,
 };
+use futures::future::join_all;
 use serde::Deserialize;
 
 use crate::{
@@ -166,4 +168,38 @@ pub async fn http_post_remove_from_followers(
     } else {
         Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
     }
+}
+
+// TODO: Make private after `nest` fix
+#[derive(Deserialize)]
+pub struct RelationshipsQuery {
+    #[serde(rename = "id[]")]
+    ids: Vec<String>,
+}
+
+// https://docs.joinmastodon.org/methods/accounts/#relationships
+pub async fn http_get_relationships(
+    state: Data<Arc<AppState>>,
+    QueryExtra(ids): QueryExtra<RelationshipsQuery>,
+    Extension(session): Extension<Session>,
+) -> Result<impl IntoResponse, AppError> {
+    let ids = ids.ids;
+    let session_user = session.user(&state.db_pool).await?;
+    Ok(Json(
+        join_all(ids.into_iter().map(|id| async {
+            let user = User::by_id(&id.into(), &state.db_pool).await.ok()?;
+            match user {
+                Some(user) => Some(
+                    Relationship::build(&session_user, &user, &state.db_pool)
+                        .await
+                        .ok()?,
+                ),
+                None => None,
+            }
+        }))
+        .await
+        .into_iter()
+        .filter_map(|relationship| relationship)
+        .collect::<Vec<Relationship>>(),
+    ))
 }
