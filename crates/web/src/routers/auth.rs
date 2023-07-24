@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{extract::State, response::IntoResponse, Json};
 use db::models::{Session, User};
 use serde::Deserialize;
@@ -22,8 +23,12 @@ pub async fn http_post_login(
     let user = User::by_name(&body.name, &state.db_pool).await?;
 
     if let Some(user) = user {
-        // TODO: Hash and check real password
-        if body.password != "uuuvndontkillme" {
+        let hash = user.password_encrypted.unwrap();
+        let parsed_hash = PasswordHash::new(&hash).unwrap();
+        if Argon2::default()
+            .verify_password(body.password.as_bytes(), &parsed_hash)
+            .is_err()
+        {
             return Ok(String::from("invalid password!!!").into_response());
         }
 
