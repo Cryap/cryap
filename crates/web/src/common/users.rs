@@ -1,6 +1,11 @@
 use std::sync::Arc;
 
 use activitypub_federation::http_signatures::generate_actor_keypair;
+use anyhow::anyhow;
+use argon2::{
+    password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
+    Argon2,
+};
 use chrono::Utc;
 use db::{models::user::User, schema::users, types::DbId};
 use diesel::insert_into;
@@ -10,7 +15,7 @@ use crate::{ApUser, AppState};
 
 pub async fn register(
     name: String,
-    _password: String,
+    password: String,
     bio: Option<String>,
     display_name: Option<String>,
     data: &Arc<AppState>,
@@ -19,6 +24,22 @@ pub async fn register(
     let ap_id = format!("https://{}/u/{}", std::env::var("CRYAP_DOMAIN")?, name);
 
     let keypair = generate_actor_keypair()?;
+
+    let password_hash = tokio::task::spawn_blocking(move || {
+        let salt = SaltString::generate(&mut OsRng);
+
+        let argon2 = Argon2::default();
+
+        argon2
+            .hash_password(password.as_bytes(), &salt)
+            .map(|f| f.to_string())
+    })
+    .await?;
+
+    let password_hash = match password_hash {
+        Ok(hash) => hash,
+        Err(_) => return Err(anyhow!("password hashing failed")),
+    };
 
     let user = User {
         id: DbId::default(),
@@ -32,7 +53,7 @@ pub async fn register(
         instance: std::env::var("CRYAP_DOMAIN")?,
         display_name,
         bio,
-        password_encrypted: Some(String::from("TODO")), // TODO: Hash password
+        password_encrypted: Some(password_hash), // TODO: Hash password
         admin: false,
         public_key: keypair.public_key,
         private_key: Some(keypair.private_key),
