@@ -16,8 +16,10 @@ use futures::future::join_all;
 use serde::Deserialize;
 
 use crate::{
-    api::entities::{Account, Relationship},
-    api::ApiError,
+    api::{
+        entities::{Account, Relationship},
+        ApiError,
+    },
     common::follows,
     errors::AppError,
     AppState,
@@ -179,7 +181,7 @@ pub struct RelationshipsQuery {
 
 // https://docs.joinmastodon.org/methods/accounts/#relationships
 pub async fn http_get_relationships(
-    state: Data<Arc<AppState>>,
+    state: State<Arc<AppState>>,
     QueryExtra(ids): QueryExtra<RelationshipsQuery>,
     Extension(session): Extension<Session>,
 ) -> Result<impl IntoResponse, AppError> {

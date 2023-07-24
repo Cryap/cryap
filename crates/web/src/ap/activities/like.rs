@@ -1,17 +1,22 @@
 use std::sync::Arc;
 
-use activitypub_federation::kinds::activity::LikeType;
-use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::ActivityHandler};
+use activitypub_federation::{
+    config::Data, fetch::object_id::ObjectId, kinds::activity::LikeType, traits::ActivityHandler,
+};
 use async_trait::async_trait;
-use db::models::interactions::PostLike;
-use db::{schema::post_like, schema::post_like::dsl};
+use db::{
+    models::interactions::PostLike,
+    schema::{post_like, post_like::dsl},
+};
 use diesel::insert_into;
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::ap::objects::note::ApNote;
-use crate::{ap::objects::user::ApUser, AppState};
+use crate::{
+    ap::objects::{note::ApNote, user::ApUser},
+    AppState,
+};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]

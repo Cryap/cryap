@@ -1,16 +1,19 @@
 mod commands;
 
-use std::fs;
-use std::sync::Arc;
+use std::{fs, sync::Arc};
 
 use activitypub_federation::config::Data;
-use tokio::io;
-use tokio::net::{UnixListener, UnixStream};
+use tokio::{
+    io,
+    net::{UnixListener, UnixStream},
+};
 
-use crate::rpc::commands::register::RpcRegisterUser;
-use crate::rpc::commands::userfetch::RpcUserFetch;
-use crate::rpc::commands::{RpcCommandData, RpcCommandResponse};
-use crate::AppState;
+use crate::{
+    rpc::commands::{
+        register::RpcRegisterUser, userfetch::RpcUserFetch, RpcCommandData, RpcCommandResponse,
+    },
+    AppState,
+};
 
 pub async fn process(stream: UnixStream, data: Arc<Data<Arc<AppState>>>) -> anyhow::Result<()> {
     let mut msg = vec![0; 1024];

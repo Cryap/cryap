@@ -1,30 +1,25 @@
 use std::sync::Arc;
 
-use activitypub_federation::protocol::helpers::deserialize_one_or_many;
 use activitypub_federation::{
     config::Data,
     fetch::object_id::ObjectId,
     kinds::{kind, link::MentionType, object::NoteType},
-    protocol::verification::verify_domains_match,
+    protocol::{helpers::deserialize_one_or_many, verification::verify_domains_match},
     traits::Object,
 };
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use db::models::Post;
-use db::models::PostMention;
 use db::{
-    models::User,
-    schema::post_mention,
-    schema::posts,
+    models::{Post, PostMention, User},
+    schema::{post_mention, posts},
     types::{DbId, DbVisibility},
 };
-use diesel::ExpressionMethods;
-use diesel::JoinOnDsl;
-use diesel::{insert_into, query_dsl::QueryDsl, result::Error::NotFound};
+use diesel::{
+    insert_into, query_dsl::QueryDsl, result::Error::NotFound, ExpressionMethods, JoinOnDsl,
+};
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
-use serde_with::NoneAsEmptyString;
+use serde_with::{serde_as, NoneAsEmptyString};
 use svix_ksuid::KsuidLike;
 use url::Url;
 

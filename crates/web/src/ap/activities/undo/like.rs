@@ -1,17 +1,19 @@
 use std::sync::Arc;
 
-use activitypub_federation::kinds::activity::UndoType;
-use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::ActivityHandler};
+use activitypub_federation::{
+    config::Data, fetch::object_id::ObjectId, kinds::activity::UndoType, traits::ActivityHandler,
+};
 use async_trait::async_trait;
 use db::{schema, schema::post_like::dsl::post_like};
-use diesel::delete;
-use diesel::prelude::*;
+use diesel::{delete, prelude::*};
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::ap::activities::like::Like;
-use crate::{ap::objects::user::ApUser, AppState};
+use crate::{
+    ap::{activities::like::Like, objects::user::ApUser},
+    AppState,
+};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]

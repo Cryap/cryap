@@ -5,9 +5,7 @@ use axum::{extract::State, response::IntoResponse, Json};
 use db::models::{Session, User};
 use serde::Deserialize;
 
-use crate::api::entities::Token;
-use crate::errors::AppError;
-use crate::AppState;
+use crate::{api::entities::Token, errors::AppError, AppState};
 
 #[derive(Deserialize)]
 pub struct PostLoginBody {

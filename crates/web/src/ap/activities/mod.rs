@@ -1,5 +1,4 @@
-use activitypub_federation::config::Data;
-use activitypub_federation::traits::ActivityHandler;
+use activitypub_federation::{config::Data, traits::ActivityHandler};
 use serde::{Deserialize, Serialize};
 use url::Url;
 

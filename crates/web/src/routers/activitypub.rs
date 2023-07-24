@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
-use activitypub_federation::axum::json::FederationJson;
-use activitypub_federation::config::Data;
-use activitypub_federation::protocol::context::WithContext;
+use activitypub_federation::{
+    axum::json::FederationJson, config::Data, protocol::context::WithContext,
+};
 use axum::response::IntoResponse;
 
-use crate::errors::AppError;
-use crate::AppState;
+use crate::{errors::AppError, AppState};
 
 pub async fn http_get_service_actor(
     state: Data<Arc<AppState>>,

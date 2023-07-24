@@ -9,12 +9,10 @@ use activitypub_federation::{
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use db::{models::User, schema::users, types::DbId};
-use diesel::ExpressionMethods;
-use diesel::{insert_into, query_dsl::QueryDsl, result::Error::NotFound};
+use diesel::{insert_into, query_dsl::QueryDsl, result::Error::NotFound, ExpressionMethods};
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
-use serde_with::NoneAsEmptyString;
+use serde_with::{serde_as, NoneAsEmptyString};
 use svix_ksuid::KsuidLike;
 use url::Url;
 

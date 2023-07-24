@@ -3,8 +3,10 @@ pub mod userfetch;
 
 use serde::{Deserialize, Serialize};
 
-use crate::rpc::commands::register::{RpcRegisterUserData, RpcRegisterUserResponse};
-use crate::rpc::commands::userfetch::RpcUserFetchResponse;
+use crate::rpc::commands::{
+    register::{RpcRegisterUserData, RpcRegisterUserResponse},
+    userfetch::RpcUserFetchResponse,
+};
 
 #[derive(Deserialize, Debug)]
 #[serde(tag = "type", content = "content")]

@@ -10,7 +10,9 @@ use activitypub_federation::{
 };
 use async_trait::async_trait;
 use db::{
-    models::UserFollowersInsert, schema::user_followers, schema::user_followers::dsl, types::DbId,
+    models::UserFollowersInsert,
+    schema::{user_followers, user_followers::dsl},
+    types::DbId,
 };
 use diesel::insert_into;
 use diesel_async::RunQueryDsl;

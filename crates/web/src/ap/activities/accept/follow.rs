@@ -1,22 +1,26 @@
 use std::sync::Arc;
 
-use activitypub_federation::kinds::activity::AcceptType;
-use activitypub_federation::protocol::helpers::deserialize_skip_error;
-use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::ActivityHandler};
+use activitypub_federation::{
+    config::Data, fetch::object_id::ObjectId, kinds::activity::AcceptType,
+    protocol::helpers::deserialize_skip_error, traits::ActivityHandler,
+};
 use async_trait::async_trait;
-use db::schema;
-use db::schema::user_follow_requests::dsl::user_follow_requests;
-use db::schema::user_followers::dsl;
-use db::{models::UserFollowersInsert, schema::user_followers};
-use diesel::ExpressionMethods;
-use diesel::QueryDsl;
-use diesel::{delete, insert_into};
+use db::{
+    models::UserFollowersInsert,
+    schema,
+    schema::{
+        user_follow_requests::dsl::user_follow_requests, user_followers, user_followers::dsl,
+    },
+};
+use diesel::{delete, insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::ap::activities::follow::Follow;
-use crate::{ap::objects::user::ApUser, AppState};
+use crate::{
+    ap::{activities::follow::Follow, objects::user::ApUser},
+    AppState,
+};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]

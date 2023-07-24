@@ -6,27 +6,29 @@ mod users;
 
 use std::sync::Arc;
 
-use activitypub_federation::config::Data;
-use activitypub_federation::config::{FederationConfig, FederationMiddleware};
-use activitypub_federation::fetch::webfinger::extract_webfinger_name;
-use activitypub_federation::fetch::webfinger::{Webfinger, WebfingerLink};
-use axum::extract::Query;
-use axum::response::IntoResponse;
-use axum::routing::{get, post};
-use axum::{handler::Handler, middleware::from_fn_with_state, Json, Router};
-use db::models::User;
-use db::schema;
-use diesel::ExpressionMethods;
-use diesel::QueryDsl;
+use activitypub_federation::{
+    config::{Data, FederationConfig, FederationMiddleware},
+    fetch::webfinger::{extract_webfinger_name, Webfinger, WebfingerLink},
+};
+use axum::{
+    extract::Query,
+    handler::Handler,
+    middleware::from_fn_with_state,
+    response::IntoResponse,
+    routing::{get, post},
+    Json, Router,
+};
+use db::{models::User, schema};
+use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use serde::Deserialize;
-use tower_http::services::{ServeDir, ServeFile};
-use tower_http::trace::TraceLayer;
+use tower_http::{
+    services::{ServeDir, ServeFile},
+    trace::TraceLayer,
+};
 use url::Url;
 
-use crate::api::auth_middleware;
-use crate::errors::AppError;
-use crate::AppState;
+use crate::{api::auth_middleware, errors::AppError, AppState};
 
 #[derive(Deserialize)]
 struct WebfingerQuery {

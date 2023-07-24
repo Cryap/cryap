@@ -1,10 +1,11 @@
 #![forbid(unsafe_code)]
 
-use std::net::SocketAddr;
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc};
 
-use activitypub_federation::config::FederationConfig;
-use activitypub_federation::http_signatures::{generate_actor_keypair, Keypair};
+use activitypub_federation::{
+    config::FederationConfig,
+    http_signatures::{generate_actor_keypair, Keypair},
+};
 use ap::objects::user::ApUser;
 use dotenvy::dotenv;
 use listenfd::ListenFd;
@@ -15,8 +16,7 @@ mod rpc;
 
 mod ap;
 mod errors;
-use diesel_async::pooled_connection::deadpool::Pool;
-use diesel_async::pooled_connection::AsyncDieselConnectionManager;
+use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
