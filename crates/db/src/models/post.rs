@@ -1,9 +1,8 @@
 use diesel::{prelude::*, result::Error::NotFound};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
-use crate::schema::post_mention;
 use crate::{
-    schema::posts,
+    schema::{post_mention, posts},
     types::{DbId, DbVisibility},
 };
 

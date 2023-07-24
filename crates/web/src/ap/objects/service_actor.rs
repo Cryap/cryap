@@ -87,7 +87,10 @@ impl Object for ServiceActor {
         Ok(())
     }
 
-    async fn from_json(json: Self::Kind, data: &Data<Self::DataType>) -> Result<Self, Self::Error> {
+    async fn from_json(
+        json: Self::Kind,
+        _data: &Data<Self::DataType>,
+    ) -> Result<Self, Self::Error> {
         Ok(json)
     }
 }

@@ -53,7 +53,7 @@ pub async fn register(
         instance: std::env::var("CRYAP_DOMAIN")?,
         display_name,
         bio,
-        password_encrypted: Some(password_hash), // TODO: Hash password
+        password_encrypted: Some(password_hash),
         admin: false,
         public_key: keypair.public_key,
         private_key: Some(keypair.private_key),

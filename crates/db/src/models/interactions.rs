@@ -1,7 +1,9 @@
 use diesel::prelude::*;
 
-use crate::schema::{post_boost, post_like};
-use crate::types::DbId;
+use crate::{
+    schema::{post_boost, post_like},
+    types::DbId,
+};
 
 #[derive(Queryable, Insertable, AsChangeset, Selectable, Debug, PartialEq, Clone, Eq)]
 #[diesel(table_name = post_like)]

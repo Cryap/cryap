@@ -1,7 +1,6 @@
 use diesel::prelude::*;
 
-use crate::schema::user_follow_requests;
-use crate::types::DbId;
+use crate::{schema::user_follow_requests, types::DbId};
 
 #[derive(Queryable, Selectable, Debug, PartialEq, Clone, Eq)]
 #[diesel(table_name = user_follow_requests)]
