@@ -1,19 +1,19 @@
 use std::sync::Arc;
 
 use activitypub_federation::{config::Data, fetch::webfinger::webfinger_resolve_actor};
+use ap::objects::user::ApUser;
 use serde::Serialize;
-
-use crate::{ApUser, AppState};
+use web::AppState;
 
 #[derive(Serialize, Debug)]
-pub struct RpcUserFetchResponse {
+pub(crate) struct RpcUserFetchResponse {
     ok: bool,
 }
 
-pub struct RpcUserFetch;
+pub(crate) struct RpcUserFetch;
 
 impl RpcUserFetch {
-    pub async fn call(request: String, data: &Data<Arc<AppState>>) -> RpcUserFetchResponse {
+    pub(crate) async fn call(request: String, data: &Data<Arc<AppState>>) -> RpcUserFetchResponse {
         let user = webfinger_resolve_actor::<Arc<AppState>, ApUser>(&request, data).await;
         match user {
             Ok(_) => RpcUserFetchResponse { ok: true },

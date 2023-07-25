@@ -1,5 +1,3 @@
-mod middleware;
-
 use std::sync::Arc;
 
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
@@ -22,6 +20,8 @@ use tower_http::{
     trace::TraceLayer,
 };
 use web::AppState;
+
+use crate::middleware;
 
 pub fn app(
     federation_config: FederationConfig<Arc<AppState>>,

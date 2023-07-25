@@ -1,23 +1,23 @@
-pub mod register;
-pub mod userfetch;
+pub(crate) mod register;
+pub(crate) mod userfetch;
 
 use serde::{Deserialize, Serialize};
 
-use crate::rpc::commands::{
+use crate::commands::{
     register::{RpcRegisterUserData, RpcRegisterUserResponse},
     userfetch::RpcUserFetchResponse,
 };
 
 #[derive(Deserialize, Debug)]
 #[serde(tag = "type", content = "content")]
-pub enum RpcCommandData {
+pub(crate) enum RpcCommandData {
     UserFetch(String),
     RegisterUser(RpcRegisterUserData),
 }
 
 #[derive(Serialize, Debug)]
 #[serde(tag = "type", content = "content")]
-pub enum RpcCommandResponse {
+pub(crate) enum RpcCommandResponse {
     UserFetch(RpcUserFetchResponse),
     RegisterUser(RpcRegisterUserResponse),
 }

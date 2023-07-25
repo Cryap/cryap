@@ -1,16 +1,16 @@
 #![forbid(unsafe_code)]
 
+mod middleware;
+mod router;
+
 use std::{net::SocketAddr, sync::Arc};
 
 use activitypub_federation::{
     config::FederationConfig,
     http_signatures::{generate_actor_keypair, Keypair},
 };
-use ap::objects::user::ApUser;
 use dotenvy::dotenv;
 use listenfd::ListenFd;
-mod routers;
-mod rpc;
 use ap::objects::service_actor::ServiceActor;
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
 use serde::{Deserialize, Serialize};
@@ -86,7 +86,7 @@ async fn main() -> anyhow::Result<()> {
     let rpc_data = Arc::new(data.to_request_data());
     tokio::spawn(async move { rpc::start(rpc_data).await });
 
-    let app = routers::app(data, service_actor.clone());
+    let app = router::app(data, service_actor.clone());
 
     match tcp_socket {
         // cargo-watch thing

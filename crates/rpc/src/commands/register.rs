@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use web::AppState;
 
 #[derive(Deserialize, Debug)]
-pub struct RpcRegisterUserData {
+pub(crate) struct RpcRegisterUserData {
     name: String,
     password: String,
     bio: Option<String>,
@@ -14,14 +14,14 @@ pub struct RpcRegisterUserData {
 }
 
 #[derive(Serialize, Debug)]
-pub struct RpcRegisterUserResponse {
+pub(crate) struct RpcRegisterUserResponse {
     ok: bool,
 }
 
-pub struct RpcRegisterUser;
+pub(crate) struct RpcRegisterUser;
 
 impl RpcRegisterUser {
-    pub async fn call(
+    pub(crate) async fn call(
         request: RpcRegisterUserData,
         data: &Data<Arc<AppState>>,
     ) -> RpcRegisterUserResponse {

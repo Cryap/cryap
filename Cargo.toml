@@ -3,17 +3,18 @@ members = [
     "crates/ap",
     "crates/api",
     "crates/db",
-    "crates/web"
+    "crates/web",
+    "crates/rpc"
 ]
 
 [workspace.package]
-name = "cryap"
-version = "0.0.1"
+version = "0.1.0"
+edition = "2021"
 
 [package]
 name = "cryap"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 default-run = "cryap"
 
 [dependencies]
@@ -32,6 +33,7 @@ db = { path = "crates/db" }
 ap = { path = "crates/ap" }
 api = { path = "crates/api" }
 web = { path = "crates/web" }
+rpc = { path = "crates/rpc" }
 diesel = { version = "2.1.0", features = ["postgres", "url", "without-deprecated", "serde_json", "chrono", "nightly-error-messages"] }
 time = { version = "0.3.23" }
 serde_json = "1.0.97"

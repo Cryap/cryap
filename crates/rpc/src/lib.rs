@@ -1,4 +1,6 @@
-mod commands;
+#![forbid(unsafe_code)]
+
+pub(crate) mod commands;
 
 use std::{fs, sync::Arc};
 
@@ -9,7 +11,7 @@ use tokio::{
 };
 use web::AppState;
 
-use crate::rpc::commands::{
+use crate::commands::{
     register::RpcRegisterUser, userfetch::RpcUserFetch, RpcCommandData, RpcCommandResponse,
 };
 
