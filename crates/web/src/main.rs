@@ -17,7 +17,9 @@ mod rpc;
 mod ap;
 mod errors;
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use tera::Tera;
 use url::Url;
 
 use crate::ap::objects::service_actor::ServiceActor;
@@ -32,6 +34,16 @@ pub struct AppState {
 struct ServiceActorData {
     pubkey: String,
     privkey: String,
+}
+
+lazy_static! {
+    pub static ref TEMPLATES: Tera = match Tera::new("crates/web/templates/*") {
+        Ok(template) => template,
+        Err(err) => {
+            log::error!("Parsing error(s): {}", err);
+            ::std::process::exit(1);
+        }
+    };
 }
 
 #[tokio::main]
@@ -110,7 +122,7 @@ async fn main() -> anyhow::Result<()> {
             .await
             .unwrap(),
         None => {
-            let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
+            let addr = SocketAddr::from(([0, 0, 0, 0], 8081));
             axum::Server::bind(&addr)
                 .serve(app.into_make_service())
                 .await

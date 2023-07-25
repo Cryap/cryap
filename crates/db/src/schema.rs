@@ -7,6 +7,24 @@ pub mod sql_types {
 }
 
 diesel::table! {
+    applications (id) {
+        #[max_length = 27]
+        id -> Bpchar,
+        #[max_length = 100]
+        name -> Varchar,
+        #[max_length = 200]
+        website -> Nullable<Varchar>,
+        #[max_length = 200]
+        redirect_uri -> Varchar,
+        #[max_length = 32]
+        client_id -> Bpchar,
+        #[max_length = 32]
+        client_secret -> Bpchar,
+        published -> Timestamp,
+    }
+}
+
+diesel::table! {
     post_boost (ap_id) {
         #[max_length = 200]
         ap_id -> Varchar,
@@ -144,6 +162,7 @@ diesel::joinable!(posts -> users (author));
 diesel::joinable!(sessions -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    applications,
     post_boost,
     post_like,
     post_mention,

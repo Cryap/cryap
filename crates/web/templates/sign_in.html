@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log in - {{ title }}</title>
+</head>
+<body>
+    <h1>Sign in to {{ title }}</h1>
+    <p>Sign in with your {{ title }} credentials. If your account is hosted on a different server, you will not be able to log in here.</p>
+    <div>
+        <form method="post">
+            <br />
+            <label for="username">Username:</label><br />
+            <input type="text" id="username" name="username" /><br />
+            <label for="password">Password:</label><br />
+            <input type="password" id="password" name="password" /><br />
+            <input type="hidden" name="redirect_url" id="redirect_url" value="{{ redirect_url }}" autocomplete="off">
+            <button type="submit">Log In</button>
+
+            {% if invalid %}
+                <p><strong>Invalid username or password</strong></p>
+            {% endif %}
+        </form>
+    </div>
+</body>

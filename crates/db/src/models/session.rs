@@ -2,9 +2,8 @@ use anyhow::anyhow;
 use chrono::Utc;
 use diesel::{insert_into, prelude::*, result::Error::NotFound};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
-use rand::{distributions::Alphanumeric, Rng};
 
-use crate::{models::User, schema::sessions, types::DbId};
+use crate::{models::User, schema::sessions, types::DbId, utils::random_string};
 
 #[derive(Queryable, Identifiable, Insertable, Selectable, Debug, PartialEq, Clone, Eq)]
 #[diesel(table_name = sessions)]
@@ -16,19 +15,13 @@ pub struct Session {
 }
 
 impl Session {
-    pub async fn new(
+    pub async fn create(
         user_id: DbId,
         db_pool: &Pool<AsyncPgConnection>,
     ) -> Result<Self, anyhow::Error> {
-        let token: String = rand::thread_rng()
-            .sample_iter(&Alphanumeric)
-            .take(60)
-            .map(char::from)
-            .collect();
-
         let session = Session {
             id: DbId::default(),
-            token,
+            token: random_string(60),
             user_id,
             published: Utc::now().naive_utc(),
         };

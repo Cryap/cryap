@@ -80,7 +80,8 @@ pub fn app(federation_config: FederationConfig<Arc<AppState>>) -> Router {
         )
         .route("/u/:name", get(users::http_get_user))
         .route("/ap/actor", get(activitypub::http_get_service_actor))
-        .route("/api/login", post(auth::http_post_login))
+        .route("/auth/sign_in", get(auth::http_get_sign_in))
+        .route("/auth/sign_in", post(auth::http_post_sign_in))
         .route(
             "/api/v1/accounts/verify_credentials",
             get(api::accounts::http_get_verify_credentials
@@ -117,6 +118,7 @@ pub fn app(federation_config: FederationConfig<Arc<AppState>>) -> Router {
             get(api::accounts::http_get_relationships
                 .layer(from_fn_with_state(Arc::clone(&state), auth_middleware))),
         )
+        .route("/api/v1/apps", post(api::apps::http_post_create))
         //        .nest("/u", users())
         .with_state(state)
         .layer(FederationMiddleware::new(federation_config))
