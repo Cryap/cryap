@@ -15,7 +15,7 @@ diesel::table! {
         #[max_length = 200]
         website -> Nullable<Varchar>,
         #[max_length = 200]
-        redirect_uri -> Varchar,
+        redirect_url -> Varchar,
         #[max_length = 32]
         client_id -> Bpchar,
         #[max_length = 32]
@@ -93,6 +93,8 @@ diesel::table! {
         #[max_length = 27]
         user_id -> Bpchar,
         published -> Timestamp,
+        #[max_length = 27]
+        application_id -> Nullable<Bpchar>,
     }
 }
 
@@ -159,6 +161,7 @@ diesel::joinable!(post_like -> users (actor_id));
 diesel::joinable!(post_mention -> posts (post_id));
 diesel::joinable!(post_mention -> users (mentioned_user_id));
 diesel::joinable!(posts -> users (author));
+diesel::joinable!(sessions -> applications (application_id));
 diesel::joinable!(sessions -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(

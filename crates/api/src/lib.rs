@@ -9,7 +9,7 @@ use lazy_static::lazy_static;
 use tera::Tera;
 
 lazy_static! {
-    pub static ref TEMPLATES: Tera = match Tera::new("crates/web/templates/*") {
+    pub static ref TEMPLATES: Tera = match Tera::new("crates/api/templates/*") {
         Ok(template) => template,
         Err(err) => {
             log::error!("Parsing error(s): {}", err);

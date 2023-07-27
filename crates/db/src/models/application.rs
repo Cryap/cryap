@@ -10,7 +10,7 @@ pub struct Application {
     pub id: DbId,
     pub name: String,
     pub website: Option<String>,
-    pub redirect_uri: String,
+    pub redirect_url: String,
     pub client_id: String,
     pub client_secret: String,
     pub published: chrono::NaiveDateTime,
@@ -20,14 +20,14 @@ impl Application {
     pub async fn create(
         name: String,
         website: Option<String>,
-        redirect_uri: String,
+        redirect_url: String,
         db_pool: &Pool<AsyncPgConnection>,
     ) -> Result<Self, anyhow::Error> {
         let application = Application {
             id: DbId::default(),
             name,
             website,
-            redirect_uri,
+            redirect_url,
             client_id: random_string(32),
             client_secret: random_string(32),
             published: Utc::now().naive_utc(),
@@ -37,6 +37,21 @@ impl Application {
             .values(application.clone())
             .get_result::<Application>(&mut db_pool.get().await?)
             .await?)
+    }
+
+    pub async fn by_id(
+        id: &DbId,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> Result<Option<Self>, anyhow::Error> {
+        let application = applications::table
+            .filter(applications::id.eq(id))
+            .first::<Self>(&mut db_pool.get().await?)
+            .await;
+        match application {
+            Ok(application) => Ok(Some(application)),
+            Err(NotFound) => Ok(None),
+            Err(err) => Err(err.into()),
+        }
     }
 
     pub async fn by_client_id(

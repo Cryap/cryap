@@ -9,10 +9,11 @@ use activitypub_federation::{
     config::FederationConfig,
     http_signatures::{generate_actor_keypair, Keypair},
 };
-use dotenvy::dotenv;
-use listenfd::ListenFd;
 use ap::objects::service_actor::ServiceActor;
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
+use dotenvy::dotenv;
+use listenfd::ListenFd;
+use redis::aio::ConnectionManager;
 use serde::{Deserialize, Serialize};
 use url::Url;
 use web::AppState;
@@ -73,7 +74,11 @@ async fn main() -> anyhow::Result<()> {
         service_actor_keys,
     );
 
-    let state = Arc::new(AppState { db_pool });
+    let redis_client = redis::Client::open(std::env::var("REDIS_URL")?)?;
+    let state = Arc::new(AppState {
+        db_pool,
+        redis: ConnectionManager::new(redis_client).await?,
+    });
 
     let data = FederationConfig::builder()
         .domain(domain.clone())

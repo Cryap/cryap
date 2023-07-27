@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authorization required - {{ title }}</title>
+</head>
+<body>
+    Signed in as: {{ username }}
+    <h2>Authorization required</h2>
+    <strong>{{ application_name }}</strong> would like permission to access your account. It is a third-party application.
+    <strong>If you do not trust it, then you should not authorize it.</strong>
+    <form action="/oauth/authorize" accept-charset="UTF-8" method="post">
+        <input type="hidden" name="client_id" id="client_id" value="{{ client_id }}" autocomplete="off">
+        <input type="hidden" name="redirect_url" id="redirect_url" value="{{ redirect_url }}" autocomplete="off">
+        <button name="button" type="submit">Authorize</button>
+    </form>
+</body>

@@ -22,7 +22,7 @@ impl Application {
                 id: application.id.to_string(),
                 name: application.name,
                 website: application.website,
-                redirect_uri: application.redirect_uri,
+                redirect_uri: application.redirect_url,
                 client_id: Some(application.client_id),
                 client_secret: Some(application.client_secret),
             }
@@ -31,7 +31,7 @@ impl Application {
                 id: application.id.to_string(),
                 name: application.name,
                 website: application.website,
-                redirect_uri: application.redirect_uri,
+                redirect_uri: application.redirect_url,
                 client_id: None,
                 client_secret: None,
             }

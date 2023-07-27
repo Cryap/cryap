@@ -53,6 +53,14 @@ pub fn app(
         )
         .route("/auth/sign_in", get(auth::http_get_sign_in))
         .route("/auth/sign_in", post(auth::http_post_sign_in))
+        .route("/oauth/authorize", get(auth::http_get_oauth_authorize))
+        .route("/oauth/authorize", post(auth::http_post_oauth_authorize))
+        .route("/oauth/token", post(auth::http_post_oauth_token))
+        .route("/oauth/revoke", post(auth::http_post_oauth_revoke))
+        .route(
+            "/oauth/authorize/native",
+            get(auth::http_get_oauth_authorize_native),
+        )
         .route(
             "/api/v1/accounts/verify_credentials",
             get(accounts::http_get_verify_credentials
@@ -87,6 +95,11 @@ pub fn app(
                 .layer(from_fn_with_state(Arc::clone(&state), auth_middleware))),
         )
         .route("/api/v1/apps", post(apps::http_post_create))
+        .route(
+            "/api/v1/apps/verify_credentials",
+            get(apps::http_get_verify_credentials
+                .layer(from_fn_with_state(Arc::clone(&state), auth_middleware))),
+        )
         //        .nest("/u", users())
         .with_state(state)
         .layer(FederationMiddleware::new(federation_config))
