@@ -17,13 +17,13 @@ use crate::{activities::follow::Follow, objects::user::ApUser};
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoFollow {
-    pub(crate) actor: ObjectId<ApUser>,
+    pub actor: ObjectId<ApUser>,
     #[serde(deserialize_with = "deserialize_skip_error", default)]
-    pub(crate) to: Option<[ObjectId<ApUser>; 1]>,
-    pub(crate) object: Follow,
+    pub to: Option<[ObjectId<ApUser>; 1]>,
+    pub object: Follow,
     #[serde(rename = "type")]
-    pub(crate) kind: UndoType,
-    pub(crate) id: Url,
+    pub kind: UndoType,
+    pub id: Url,
 }
 
 #[async_trait]

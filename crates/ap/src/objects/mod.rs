@@ -2,7 +2,7 @@
 macro_rules! db_to_ap {
     ( $db:path, $ap:ident ) => {
         #[derive(Clone, Debug, PartialEq, Eq)]
-        pub struct $ap(pub(crate) $db);
+        pub struct $ap(pub $db);
 
         impl std::ops::Deref for $ap {
             type Target = $db;

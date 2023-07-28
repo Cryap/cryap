@@ -26,6 +26,19 @@ pub struct CreateNote {
     pub(crate) id: Url,
 }
 
+impl From<Note> for CreateNote {
+    fn from(note: Note) -> Self {
+        let mut id = note.id.clone().into_inner();
+        id.set_fragment(Some("create")); // https://cryap/p/id#create
+        CreateNote {
+            id,
+            kind: Default::default(),
+            actor: note.attributed_to.clone(),
+            object: note.clone(),
+        }
+    }
+}
+
 #[async_trait]
 impl ActivityHandler for CreateNote {
     type DataType = Arc<AppState>;

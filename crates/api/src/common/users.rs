@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use activitypub_federation::http_signatures::generate_actor_keypair;
 use anyhow::anyhow;
+use ap::objects::user::ApUser;
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
     Argon2,
@@ -12,7 +13,8 @@ use diesel::insert_into;
 use diesel_async::RunQueryDsl;
 use web::AppState;
 
-use crate::objects::user::ApUser;
+pub const USERNAME_RE: &str = r"[a-z0-9_]+([a-z0-9_.-]+[a-z0-9_]+)?";
+pub const MENTION_RE: &str = r"@(?P<name>[\w.]+)(@(?P<domain>[a-zA-Z0-9._:-]+))?";
 
 pub async fn register(
     name: String,

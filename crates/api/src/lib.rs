@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+pub mod common;
 pub mod auth_middleware;
 pub mod entities;
 pub mod error;

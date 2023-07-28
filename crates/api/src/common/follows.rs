@@ -13,7 +13,7 @@ use diesel_async::RunQueryDsl;
 use url::Url;
 use web::AppState;
 
-use crate::{
+use ap::{
     activities::{follow::Follow, reject::follow::RejectFollow, undo::follow::UndoFollow},
     objects::user::ApUser,
 };

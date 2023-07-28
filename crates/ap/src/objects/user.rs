@@ -37,24 +37,24 @@ pub struct Endpoints {
 #[serde(rename_all = "camelCase")]
 pub struct Person {
     #[serde(rename = "type")]
-    pub(crate) kind: UserTypes,
-    pub(crate) id: ObjectId<ApUser>,
-    pub(crate) preferred_username: String,
-    pub(crate) inbox: Url,
-    pub(crate) outbox: Url,
-    pub(crate) followers: Url,
-    pub(crate) following: Url,
-    pub(crate) public_key: PublicKey,
+    pub kind: UserTypes,
+    pub id: ObjectId<ApUser>,
+    pub preferred_username: String,
+    pub inbox: Url,
+    pub outbox: Url,
+    pub followers: Url,
+    pub following: Url,
+    pub public_key: PublicKey,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) endpoints: Option<Endpoints>,
-    pub(crate) manually_approves_followers: bool,
+    pub endpoints: Option<Endpoints>,
+    pub manually_approves_followers: bool,
 
     /// displayname
-    pub(crate) name: Option<String>,
+    pub name: Option<String>,
     #[serde_as(as = "NoneAsEmptyString")]
-    pub(crate) summary: Option<String>,
-    pub(crate) published: Option<DateTime<Utc>>,
-    pub(crate) updated: Option<DateTime<Utc>>,
+    pub summary: Option<String>,
+    pub published: Option<DateTime<Utc>>,
+    pub updated: Option<DateTime<Utc>>,
 }
 
 #[async_trait::async_trait]

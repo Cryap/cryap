@@ -30,3 +30,4 @@ futures = "0.3.28"
 argon2 = "0.5.1"
 tera = "1.19.0"
 redis = { version = "0.23.0", features = ["tokio-comp", "aio", "connection-manager", "r2d2", "rand"] }
+regex = "1.9.1"

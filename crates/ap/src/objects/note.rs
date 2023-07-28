@@ -81,27 +81,27 @@ pub fn parse_to_cc(to: &Vec<Url>, cc: &Vec<Url>, actor_followers_uri: Url) -> Db
 #[serde(rename_all = "camelCase")]
 pub struct Note {
     #[serde(rename = "type")]
-    pub(crate) kind: NoteType,
-    pub(crate) id: ObjectId<ApNote>,
-    pub(crate) attributed_to: ObjectId<ApUser>,
+    pub kind: NoteType,
+    pub id: ObjectId<ApNote>,
+    pub attributed_to: ObjectId<ApUser>,
 
-    pub(crate) content: String,
-    pub(crate) url: Option<String>,
+    pub content: String,
+    pub url: Option<String>,
     #[serde_as(as = "NoneAsEmptyString")]
-    pub(crate) summary: Option<String>,
-    pub(crate) sensitive: Option<bool>,
-    pub(crate) in_reply_to: Option<ObjectId<ApNote>>,
-    pub(crate) published: Option<DateTime<Utc>>,
-    pub(crate) updated: Option<DateTime<Utc>>,
-    pub(crate) quote_uri: Option<ObjectId<ApNote>>,
-    pub(crate) quote_url: Option<ObjectId<ApNote>>,
+    pub summary: Option<String>,
+    pub sensitive: Option<bool>,
+    pub in_reply_to: Option<ObjectId<ApNote>>,
+    pub published: Option<DateTime<Utc>>,
+    pub updated: Option<DateTime<Utc>>,
+    pub quote_uri: Option<ObjectId<ApNote>>,
+    pub quote_url: Option<ObjectId<ApNote>>,
     #[serde(default)]
-    pub(crate) tag: Vec<NoteTags>,
+    pub tag: Vec<NoteTags>,
 
     #[serde(deserialize_with = "deserialize_one_or_many")]
-    pub(crate) to: Vec<Url>,
+    pub to: Vec<Url>,
     #[serde(deserialize_with = "deserialize_one_or_many", default)]
-    pub(crate) cc: Vec<Url>,
+    pub cc: Vec<Url>,
 }
 
 #[async_trait::async_trait]

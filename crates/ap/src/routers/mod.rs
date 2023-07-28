@@ -2,7 +2,6 @@ pub mod activitypub;
 pub mod users;
 
 use axum::Router;
-use web::AppState;
 
 use crate::objects::service_actor::ServiceActor;
 

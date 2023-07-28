@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use activitypub_federation::config::Data;
-use ap::common::follows;
+use crate::common::follows;
 use axum::{
     extract::{Extension, Path, Query, State},
     handler::Handler,

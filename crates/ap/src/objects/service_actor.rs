@@ -21,22 +21,22 @@ use super::user::Endpoints;
 #[serde(rename_all = "camelCase")]
 pub struct ServiceActor {
     #[serde(rename = "type")]
-    pub(crate) kind: ApplicationType,
-    pub(crate) id: ObjectId<ServiceActor>,
-    pub(crate) preferred_username: String,
-    pub(crate) inbox: Url,
-    pub(crate) followers: Url,
-    pub(crate) following: Url,
-    pub(crate) public_key: PublicKey,
+    pub kind: ApplicationType,
+    pub id: ObjectId<ServiceActor>,
+    pub preferred_username: String,
+    pub inbox: Url,
+    pub followers: Url,
+    pub following: Url,
+    pub public_key: PublicKey,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) endpoints: Option<Endpoints>,
+    pub endpoints: Option<Endpoints>,
     #[serde(skip)]
-    pub(crate) private_key: String,
+    pub private_key: String,
 
     /// displayname
-    pub(crate) name: Option<String>,
+    pub name: Option<String>,
     #[serde_as(as = "NoneAsEmptyString")]
-    pub(crate) summary: Option<String>,
+    pub summary: Option<String>,
 }
 
 impl ServiceActor {

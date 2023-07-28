@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use activitypub_federation::config::Data;
-use ap::common::users;
+use api::common::users;
 use serde::{Deserialize, Serialize};
 use web::AppState;
 

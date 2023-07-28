@@ -10,7 +10,7 @@ use activitypub_federation::{
 };
 use async_trait::async_trait;
 use db::{
-    models::UserFollowersInsert,
+    models::{User, UserFollowersInsert},
     schema::{user_followers, user_followers::dsl},
     types::DbId,
 };
@@ -34,6 +34,24 @@ pub struct Follow {
     #[serde(rename = "type")]
     pub kind: FollowType,
     pub id: Url,
+}
+
+impl Follow {
+    pub fn new(id: Option<DbId>, by: User, to: User) -> Follow {
+        let id = Url::parse(&format!(
+            "{}/activities/follows/{}",
+            by.ap_id,
+            id.unwrap_or_else(|| DbId::default())
+        ))
+        .unwrap(); // TODO: Review
+        Follow {
+            id: id.clone(),
+            kind: Default::default(),
+            actor: ObjectId::<ApUser>::from(Url::parse(&by.ap_id).unwrap()),
+            object: ObjectId::<ApUser>::from(Url::parse(&to.ap_id).unwrap()),
+            to: Some([ObjectId::<ApUser>::from(Url::parse(&to.ap_id).unwrap())]),
+        }
+    }
 }
 
 #[async_trait]
