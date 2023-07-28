@@ -4,6 +4,7 @@ use activitypub_federation::{
     activity_queue::send_activity, config::Data, fetch::webfinger::webfinger_resolve_actor,
     traits::Object,
 };
+use anyhow::anyhow;
 use ap::{
     activities::create::note::CreateNote,
     objects::{note::ApNote, user::ApUser},
@@ -65,7 +66,15 @@ pub async fn post(
     let mut mentions: Vec<ApUser> = vec![];
 
     for mention in match_mentions(content.clone()) {
-        mentions.push(webfinger_resolve_actor(&mention, data).await?);
+        mentions.push(if mention.contains("@") {
+            webfinger_resolve_actor(&mention, data).await?
+        } else {
+            let user = User::by_name(&mention, &data.db_pool).await?;
+            match user {
+                Some(user) => ApUser(user),
+                None => return Err(anyhow!("mentioned local user not found")),
+            }
+        });
     }
 
     let object = Post {
