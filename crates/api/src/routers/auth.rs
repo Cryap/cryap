@@ -6,7 +6,8 @@ use axum::{
     extract::{Query, State},
     http::{Request, StatusCode},
     response::{Html, IntoResponse, Redirect},
-    Form, Json,
+    routing::{get, post},
+    Form, Json, Router,
 };
 use axum_extra::extract::cookie::{Cookie, CookieJar};
 use db::models::{Application, RedirectCode, Session, User};
@@ -17,7 +18,6 @@ use web::{errors::AppError, AppState};
 
 use crate::{entities::Token, error::ApiError, TEMPLATES};
 
-// TODO: Make private after `nest` fix
 #[derive(Deserialize)]
 pub struct SignInQuery {
     redirect_url: Option<String>,
@@ -45,7 +45,6 @@ pub async fn http_get_sign_in(
     Ok(Html(TEMPLATES.render("sign_in.html", &context)?).into_response())
 }
 
-// TODO: Make private after `nest` fix
 #[derive(Deserialize)]
 pub struct SignInBody {
     username: String,
@@ -106,7 +105,6 @@ pub async fn http_post_sign_in(
     Ok(Html(TEMPLATES.render("sign_in.html", &context)?).into_response())
 }
 
-// TODO: Make private after `nest` fix
 #[derive(Deserialize)]
 pub struct AuthorizeQuery {
     response_type: Option<String>,
@@ -164,7 +162,6 @@ pub async fn http_get_oauth_authorize(
     Ok(Html(TEMPLATES.render("authorize.html", &context)?).into_response())
 }
 
-// TODO: Make private after `nest` fix
 #[derive(Deserialize)]
 pub struct AuthorizeBody {
     client_id: String,
@@ -216,7 +213,6 @@ pub async fn http_post_oauth_authorize(
     }
 }
 
-// TODO: Make private after `nest` fix
 #[derive(Deserialize)]
 pub struct AuthorizeNativeQuery {
     code: Option<String>,
@@ -247,7 +243,6 @@ pub async fn http_get_oauth_authorize_native(
     Ok(Html(TEMPLATES.render("code_display.html", &context)?).into_response())
 }
 
-// TODO: Make private after `nest` fix
 #[derive(Deserialize)]
 pub struct TokenBody {
     code: String,
@@ -287,7 +282,6 @@ pub async fn http_post_oauth_token(
     Ok(Json(Token::new(session)).into_response())
 }
 
-// TODO: Make private after `nest` fix
 #[derive(Deserialize)]
 pub struct RevokeBody {
     token: String,
@@ -298,7 +292,7 @@ pub struct RevokeBody {
 #[derive(Serialize)]
 struct EmptyJsonObject {}
 
-// TODO: Fully implement https://docs.joinmastodon.org/methods/oauth/#revoke
+// https://docs.joinmastodon.org/methods/oauth/#revoke
 pub async fn http_post_oauth_revoke(
     state: State<Arc<AppState>>,
     Json(body): Json<RevokeBody>,
@@ -327,4 +321,18 @@ pub async fn http_post_oauth_revoke(
         )
         .into_response()),
     }
+}
+
+pub fn auth() -> Router<Arc<AppState>> {
+    Router::new()
+        .route("/auth/sign_in", get(http_get_sign_in))
+        .route("/auth/sign_in", post(http_post_sign_in))
+        .route("/oauth/authorize", get(http_get_oauth_authorize))
+        .route("/oauth/authorize", post(http_post_oauth_authorize))
+        .route("/oauth/token", post(http_post_oauth_token))
+        .route("/oauth/revoke", post(http_post_oauth_revoke))
+        .route(
+            "/oauth/authorize/native",
+            get(http_get_oauth_authorize_native),
+        )
 }

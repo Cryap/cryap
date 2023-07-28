@@ -6,7 +6,9 @@ use activitypub_federation::{
     fetch::webfinger::{extract_webfinger_name, Webfinger, WebfingerLink},
     protocol::context::WithContext,
 };
-use axum::{extract::Query, response::IntoResponse, Extension, Json};
+use axum::{
+    extract::Query, handler::Handler, response::IntoResponse, routing::get, Extension, Json, Router,
+};
 use db::{models::User, schema};
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
@@ -16,7 +18,6 @@ use web::{errors::AppError, AppState};
 
 use crate::objects::service_actor::ServiceActor;
 
-// TODO: Make private after `nest` fix
 #[derive(Deserialize)]
 pub struct WebfingerQuery {
     resource: String,
@@ -52,4 +53,13 @@ pub async fn http_get_service_actor(
     Extension(service_actor): Extension<ServiceActor>,
 ) -> Result<impl IntoResponse, AppError> {
     Ok(FederationJson(WithContext::new_default(service_actor.clone())).into_response())
+}
+
+pub fn activitypub(service_actor: ServiceActor) -> Router {
+    Router::new()
+        .route("/.well-known/webfinger", get(http_get_webfinger))
+        .route(
+            "/ap/actor",
+            get(http_get_service_actor.layer(Extension(service_actor))),
+        )
 }

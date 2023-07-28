@@ -2,5 +2,6 @@
 
 pub mod activities;
 pub mod common;
+pub mod middleware;
 pub mod objects;
 pub mod routers;

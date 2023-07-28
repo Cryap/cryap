@@ -23,7 +23,6 @@ axum = { version = "0.6.18", features = ["multipart", "ws", "headers", "macros"]
 diesel-async = { version = "0.3.1", features = ["postgres", "deadpool"] }
 dotenvy = "0.15.7"
 env_logger = "0.10.0"
-hyper = { version = "0.14.26", features = ["full"] }
 listenfd = "1.0.1"
 log = "0.4.18"
 serde = "1.0.163"

@@ -1,14 +1,23 @@
 use std::sync::Arc;
 
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
+use axum::{
+    extract::State,
+    handler::Handler,
+    http::StatusCode,
+    middleware::from_fn_with_state,
+    response::IntoResponse,
+    routing::{get, post},
+    Extension, Json, Router,
+};
 use db::models::{Application, Session};
 use serde::Deserialize;
 use url::Url;
 use web::{errors::AppError, AppState};
 
-use crate::{entities::Application as ApiApplication, error::ApiError};
+use crate::{
+    auth_middleware::auth_middleware, entities::Application as ApiApplication, error::ApiError,
+};
 
-// TODO: Make private after `nest` fix
 #[derive(Deserialize)]
 pub struct CreateBody {
     #[serde(rename = "client_name")]
@@ -45,4 +54,14 @@ pub async fn http_get_verify_credentials(
         Some(application) => Ok(Json(ApiApplication::new(application, false)).into_response()),
         None => Ok(Json(()).into_response()), // FIXME: I don't know what Mastodon does in this case
     }
+}
+
+pub fn apps(state: &Arc<AppState>) -> Router<Arc<AppState>> {
+    Router::new()
+        .route("/api/v1/apps", post(http_post_create))
+        .route(
+            "/api/v1/apps/verify_credentials",
+            get(http_get_verify_credentials
+                .layer(from_fn_with_state(Arc::clone(state), auth_middleware))),
+        )
 }

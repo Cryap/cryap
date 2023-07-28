@@ -4,9 +4,12 @@ use activitypub_federation::config::Data;
 use ap::common::follows;
 use axum::{
     extract::{Extension, Path, Query, State},
+    handler::Handler,
     http::StatusCode,
+    middleware::from_fn_with_state,
     response::IntoResponse,
-    Json,
+    routing::{get, post},
+    Json, Router,
 };
 use axum_extra::extract::Query as QueryExtra;
 use db::{
@@ -18,6 +21,7 @@ use serde::Deserialize;
 use web::{errors::AppError, AppState};
 
 use crate::{
+    auth_middleware::auth_middleware,
     entities::{Account, Relationship},
     error::ApiError,
 };
@@ -30,7 +34,6 @@ pub async fn http_get_verify_credentials(
     Ok(Json(Account::new(session.user(&state.db_pool).await?)).into_response())
 }
 
-// TODO: Make private after `nest` fix
 #[derive(Deserialize)]
 pub struct LookupQuery {
     acct: String,
@@ -169,7 +172,6 @@ pub async fn http_post_remove_from_followers(
     }
 }
 
-// TODO: Make private after `nest` fix
 #[derive(Deserialize)]
 pub struct RelationshipsQuery {
     #[serde(rename = "id[]")]
@@ -201,4 +203,35 @@ pub async fn http_get_relationships(
         .filter_map(|relationship| relationship)
         .collect::<Vec<Relationship>>(),
     ))
+}
+
+pub fn accounts(state: &Arc<AppState>) -> Router<Arc<AppState>> {
+    Router::new()
+        .route(
+            "/api/v1/accounts/verify_credentials",
+            get(http_get_verify_credentials
+                .layer(from_fn_with_state(Arc::clone(state), auth_middleware))),
+        )
+        .route("/api/v1/accounts/lookup", get(http_get_lookup))
+        .route("/api/v1/accounts/:id", get(http_get_get))
+        .route(
+            "/api/v1/accounts/:id/follow",
+            post(http_post_follow.layer(from_fn_with_state(Arc::clone(state), auth_middleware))),
+        )
+        .route(
+            "/api/v1/accounts/:id/unfollow",
+            post(http_post_unfollow.layer(from_fn_with_state(Arc::clone(state), auth_middleware))),
+        )
+        .route(
+            "/api/v1/accounts/:id/remove_from_followers",
+            post(
+                http_post_remove_from_followers
+                    .layer(from_fn_with_state(Arc::clone(state), auth_middleware)),
+            ),
+        )
+        .route(
+            "/api/v1/accounts/relationships",
+            get(http_get_relationships
+                .layer(from_fn_with_state(Arc::clone(state), auth_middleware))),
+        )
 }

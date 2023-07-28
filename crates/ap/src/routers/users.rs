@@ -9,11 +9,18 @@ use activitypub_federation::{
     protocol::context::WithContext,
     traits::Object,
 };
-use axum::{extract::Path, http::StatusCode, response::IntoResponse};
+use axum::{
+    extract::Path,
+    handler::Handler,
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+    Router,
+};
 use db::models::User;
 use web::{errors::AppError, AppState};
 
-use crate::{activities::UserInbox, objects::user::ApUser};
+use crate::{activities::UserInbox, middleware, objects::user::ApUser};
 
 pub async fn http_post_user_inbox(
     state: Data<Arc<AppState>>,
@@ -42,4 +49,13 @@ pub async fn http_get_user(
     //    } else {
     //        unreachable!()
     //    }
+}
+
+pub fn users() -> Router {
+    Router::new()
+        .route(
+            "/u/:name/ap/inbox",
+            post(http_post_user_inbox.layer(axum::middleware::from_fn(middleware::print_inbox))),
+        )
+        .route("/u/:name", get(http_get_user))
 }

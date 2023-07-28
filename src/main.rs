@@ -1,6 +1,5 @@
 #![forbid(unsafe_code)]
 
-mod middleware;
 mod router;
 
 use std::{net::SocketAddr, sync::Arc};
