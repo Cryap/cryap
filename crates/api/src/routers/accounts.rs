@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use activitypub_federation::config::Data;
-use crate::common::follows;
 use axum::{
     extract::{Extension, Path, Query, State},
     handler::Handler,
@@ -22,6 +21,7 @@ use web::{errors::AppError, AppState};
 
 use crate::{
     auth_middleware::auth_middleware,
+    common::follows,
     entities::{Account, Relationship},
     error::ApiError,
 };

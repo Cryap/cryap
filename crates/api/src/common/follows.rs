@@ -3,6 +3,10 @@ use std::sync::Arc;
 use activitypub_federation::{
     activity_queue::send_activity, config::Data, fetch::object_id::ObjectId, traits::Actor,
 };
+use ap::{
+    activities::{follow::Follow, reject::follow::RejectFollow, undo::follow::UndoFollow},
+    objects::user::ApUser,
+};
 use db::{
     models::{user::User, UserFollowRequestsInsert},
     schema::{user_follow_requests, user_followers},
@@ -12,11 +16,6 @@ use diesel::{delete, insert_into, result::Error::NotFound, ExpressionMethods, Qu
 use diesel_async::RunQueryDsl;
 use url::Url;
 use web::AppState;
-
-use ap::{
-    activities::{follow::Follow, reject::follow::RejectFollow, undo::follow::UndoFollow},
-    objects::user::ApUser,
-};
 
 pub async fn want_to_follow(
     by: &User,

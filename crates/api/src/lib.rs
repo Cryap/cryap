@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 
-pub mod common;
 pub mod auth_middleware;
+pub mod common;
 pub mod entities;
 pub mod error;
 pub mod routers;
