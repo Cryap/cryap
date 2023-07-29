@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+mod config;
 mod router;
 
 use std::{net::SocketAddr, sync::Arc};
@@ -58,6 +59,7 @@ async fn main() -> anyhow::Result<()> {
         }
     };
 
+    config::process_config().await?;
     let config = AsyncDieselConnectionManager::<diesel_async::AsyncPgConnection>::new(
         std::env::var("DATABASE_URL")?,
     );
