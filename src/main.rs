@@ -1,8 +1,12 @@
 #![forbid(unsafe_code)]
 
+mod config;
 mod router;
 
-use std::{net::SocketAddr, sync::Arc};
+use std::{
+    net::{IpAddr, SocketAddr},
+    sync::Arc,
+};
 
 use activitypub_federation::{
     config::FederationConfig,
@@ -10,7 +14,6 @@ use activitypub_federation::{
 };
 use ap::objects::service_actor::ServiceActor;
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
-use dotenvy::dotenv;
 use listenfd::ListenFd;
 use redis::aio::ConnectionManager;
 use serde::{Deserialize, Serialize};
@@ -25,7 +28,6 @@ struct ServiceActorData {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    dotenv().ok();
     env_logger::init();
 
     let mut listenfd = ListenFd::from_env();
@@ -58,29 +60,35 @@ async fn main() -> anyhow::Result<()> {
         }
     };
 
-    let config = AsyncDieselConnectionManager::<diesel_async::AsyncPgConnection>::new(
-        std::env::var("DATABASE_URL")?,
-    );
-    let db_pool = Pool::builder(config).build()?;
+    let config = match config::process_config() {
+        Ok(config) => config,
+        Err(err) => {
+            log::error!("Can't parse config.toml :(");
+            return Err(err);
+        }
+    };
+
+    let db_config =
+        AsyncDieselConnectionManager::<diesel_async::AsyncPgConnection>::new(&config.database.uri);
+    let db_pool = Pool::builder(db_config).build()?;
     let mut connection = db_pool.get().await?;
 
     db::migrations::run_migrations(&mut connection).await?; // run all pending migrations
 
-    let domain = std::env::var("CRYAP_DOMAIN")?;
-
     let service_actor = ServiceActor::new(
-        Url::parse(&format!("https://{}/ap/actor", domain))?,
+        Url::parse(&format!("https://{}/ap/actor", &config.web.domain))?,
         service_actor_keys,
     );
 
-    let redis_client = redis::Client::open(std::env::var("REDIS_URL")?)?;
+    let redis_client = redis::Client::open(config.redis.uri.clone())?;
     let state = Arc::new(AppState {
         db_pool,
         redis: ConnectionManager::new(redis_client).await?,
+        config,
     });
 
     let data = FederationConfig::builder()
-        .domain(domain.clone())
+        .domain(&state.config.web.domain)
         .app_data(Arc::clone(&state))
         .http_signature_compat(true) // Pleroma federation
         .signed_fetch_actor(&service_actor)
@@ -100,7 +108,10 @@ async fn main() -> anyhow::Result<()> {
             .await
             .unwrap(),
         None => {
-            let addr = SocketAddr::from(([0, 0, 0, 0], 8081));
+            let addr = SocketAddr::from((
+                state.config.web.host.parse::<IpAddr>()?,
+                state.config.web.port,
+            ));
             axum::Server::bind(&addr)
                 .serve(app.into_make_service())
                 .await

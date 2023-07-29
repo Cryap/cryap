@@ -2,6 +2,7 @@
 /crates/web/target
 /migration/target
 /db
+config.toml
 result*
 .env
 docker-compose.yml.dev

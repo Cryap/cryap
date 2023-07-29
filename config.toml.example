@@ -1,0 +1,9 @@
+[web]
+domain = "example.com"
+port = 8080
+
+[database]
+uri = "postgres://postgres:example@127.0.0.1:5432/postgres"
+
+[redis]
+uri = "redis://127.0.0.1"
