@@ -17,7 +17,7 @@ impl Relationship {
         by: &User,
         to: &User,
         db_pool: &Pool<AsyncPgConnection>,
-    ) -> Result<Self, anyhow::Error> {
+    ) -> anyhow::Result<Self> {
         Ok(Self {
             id: to.id.to_string(),
             following: by.follows(to, db_pool).await?,

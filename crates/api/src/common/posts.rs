@@ -52,7 +52,7 @@ pub async fn post(
     by: &User,
     options: NewPost,
     data: &Data<Arc<AppState>>,
-) -> Result<(), anyhow::Error> {
+) -> anyhow::Result<()> {
     let mut conn = data.db_pool.get().await?;
     let id = DbId::default();
     let ap_id = format!(

@@ -25,7 +25,7 @@ impl Session {
         user_id: DbId,
         application_id: Option<DbId>,
         db_pool: &Pool<AsyncPgConnection>,
-    ) -> Result<Self, anyhow::Error> {
+    ) -> anyhow::Result<Self> {
         let session = Session {
             id: DbId::default(),
             token: random_string(60),
@@ -43,7 +43,7 @@ impl Session {
     pub async fn by_token(
         token: &str,
         db_pool: &Pool<AsyncPgConnection>,
-    ) -> Result<Option<Self>, anyhow::Error> {
+    ) -> anyhow::Result<Option<Self>> {
         let session = sessions::table
             .filter(sessions::token.eq(token.to_string()))
             .first::<Self>(&mut db_pool.get().await?)
@@ -55,7 +55,7 @@ impl Session {
         }
     }
 
-    pub async fn user(&self, db_pool: &Pool<AsyncPgConnection>) -> Result<User, anyhow::Error> {
+    pub async fn user(&self, db_pool: &Pool<AsyncPgConnection>) -> anyhow::Result<User> {
         User::by_id(&self.user_id, db_pool)
             .await?
             .ok_or(anyhow!("This wasn't supposed to happen"))
@@ -64,7 +64,7 @@ impl Session {
     pub async fn application(
         &self,
         db_pool: &Pool<AsyncPgConnection>,
-    ) -> Result<Option<Application>, anyhow::Error> {
+    ) -> anyhow::Result<Option<Application>> {
         match &self.application_id {
             Some(application_id) => Ok(Some(
                 Application::by_id(application_id, db_pool)
@@ -75,7 +75,7 @@ impl Session {
         }
     }
 
-    pub async fn delete(&self, db_pool: &Pool<AsyncPgConnection>) -> Result<(), anyhow::Error> {
+    pub async fn delete(&self, db_pool: &Pool<AsyncPgConnection>) -> anyhow::Result<()> {
         delete(sessions::table.filter(sessions::id.eq(&self.id)))
             .execute(&mut db_pool.get().await?)
             .await?;

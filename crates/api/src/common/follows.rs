@@ -21,7 +21,7 @@ pub async fn want_to_follow(
     by: &User,
     to: &User,
     data: &Data<Arc<AppState>>,
-) -> Result<(), anyhow::Error> {
+) -> anyhow::Result<()> {
     let mut conn = data.db_pool.get().await?;
     let id = Url::parse(&format!(
         "{}/activities/follows/{}",
@@ -63,7 +63,7 @@ pub async fn unfollow(
     by: &User,
     to: &User,
     data: &Data<Arc<AppState>>,
-) -> Result<(), anyhow::Error> {
+) -> anyhow::Result<()> {
     let mut conn = data.db_pool.get().await?;
     let undo_id = Url::parse(&format!(
         "{}/activities/undo/follows/{}",
@@ -135,7 +135,7 @@ pub async fn remove_from_followers(
     by: &User,
     to: &User,
     data: &Data<Arc<AppState>>,
-) -> Result<(), anyhow::Error> {
+) -> anyhow::Result<()> {
     let mut conn = data.db_pool.get().await?;
     let reject_id = Url::parse(&format!(
         "{}/activities/reject/follows/{}",

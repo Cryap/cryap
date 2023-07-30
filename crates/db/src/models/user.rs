@@ -35,7 +35,7 @@ impl User {
     pub async fn by_id(
         id: &DbId,
         db_pool: &Pool<AsyncPgConnection>,
-    ) -> Result<Option<Self>, anyhow::Error> {
+    ) -> anyhow::Result<Option<Self>> {
         let user = users::table
             .filter(users::id.eq(id))
             .first::<Self>(&mut db_pool.get().await?)
@@ -50,7 +50,7 @@ impl User {
     pub async fn by_name(
         name: &str,
         db_pool: &Pool<AsyncPgConnection>,
-    ) -> Result<Option<Self>, anyhow::Error> {
+    ) -> anyhow::Result<Option<Self>> {
         let user = users::table
             .filter(users::name.eq(name.to_string()))
             .first::<Self>(&mut db_pool.get().await?)
@@ -65,7 +65,7 @@ impl User {
     pub async fn local_by_name(
         name: &str,
         db_pool: &Pool<AsyncPgConnection>,
-    ) -> Result<Option<Self>, anyhow::Error> {
+    ) -> anyhow::Result<Option<Self>> {
         let user = users::table
             .filter(users::local.eq(true))
             .filter(users::name.eq(name.to_string()))
@@ -81,7 +81,7 @@ impl User {
     pub async fn by_acct(
         acct: String,
         db_pool: &Pool<AsyncPgConnection>,
-    ) -> Result<Option<Self>, anyhow::Error> {
+    ) -> anyhow::Result<Option<Self>> {
         let acct = if acct.starts_with('@') {
             &acct[1..]
         } else {
@@ -109,7 +109,7 @@ impl User {
         &self,
         user: &User,
         db_pool: &Pool<AsyncPgConnection>,
-    ) -> Result<bool, anyhow::Error> {
+    ) -> anyhow::Result<bool> {
         let result = user_followers::table
             .select(sql::<Bool>("true"))
             .filter(user_followers::actor_id.eq(&self.id))
@@ -127,7 +127,7 @@ impl User {
         &self,
         user: &User,
         db_pool: &Pool<AsyncPgConnection>,
-    ) -> Result<bool, anyhow::Error> {
+    ) -> anyhow::Result<bool> {
         let result = user_follow_requests::table
             .select(sql::<Bool>("true"))
             .filter(user_follow_requests::actor_id.eq(&self.id))

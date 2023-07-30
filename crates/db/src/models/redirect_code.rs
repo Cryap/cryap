@@ -17,7 +17,7 @@ impl RedirectCode {
         client_id: String,
         user_id: DbId,
         redis: &mut ConnectionManager,
-    ) -> Result<Self, anyhow::Error> {
+    ) -> anyhow::Result<Self> {
         let code = random_string(32);
         let key = format!("codes:{}", code);
 
@@ -44,7 +44,7 @@ impl RedirectCode {
     pub async fn by_code(
         code: &str,
         redis: &mut ConnectionManager,
-    ) -> Result<Option<Self>, anyhow::Error> {
+    ) -> anyhow::Result<Option<Self>> {
         let hash: HashMap<String, String> = redis.hgetall(format!("codes:{}", code)).await?;
 
         if hash.is_empty() {
@@ -59,14 +59,14 @@ impl RedirectCode {
         }
     }
 
-    pub async fn user(&self, db_pool: &Pool<AsyncPgConnection>) -> Result<User, anyhow::Error> {
+    pub async fn user(&self, db_pool: &Pool<AsyncPgConnection>) -> anyhow::Result<User> {
         match User::by_id(&self.user_id, db_pool).await? {
             Some(user) => Ok(user),
             None => Err(anyhow!("User sucked into a black hole")),
         }
     }
 
-    pub async fn delete(&self, redis: &mut ConnectionManager) -> Result<(), anyhow::Error> {
+    pub async fn delete(&self, redis: &mut ConnectionManager) -> anyhow::Result<()> {
         redis.del(format!("codes:{}", self.code)).await?;
         Ok(())
     }

@@ -22,7 +22,7 @@ impl Application {
         website: Option<String>,
         redirect_url: String,
         db_pool: &Pool<AsyncPgConnection>,
-    ) -> Result<Self, anyhow::Error> {
+    ) -> anyhow::Result<Self> {
         let application = Application {
             id: DbId::default(),
             name,
@@ -42,7 +42,7 @@ impl Application {
     pub async fn by_id(
         id: &DbId,
         db_pool: &Pool<AsyncPgConnection>,
-    ) -> Result<Option<Self>, anyhow::Error> {
+    ) -> anyhow::Result<Option<Self>> {
         let application = applications::table
             .filter(applications::id.eq(id))
             .first::<Self>(&mut db_pool.get().await?)
@@ -57,7 +57,7 @@ impl Application {
     pub async fn by_client_id(
         client_id: &str,
         db_pool: &Pool<AsyncPgConnection>,
-    ) -> Result<Option<Self>, anyhow::Error> {
+    ) -> anyhow::Result<Option<Self>> {
         let application = applications::table
             .filter(applications::client_id.eq(client_id.to_string()))
             .first::<Self>(&mut db_pool.get().await?)

@@ -22,7 +22,7 @@ pub async fn register(
     bio: Option<String>,
     display_name: Option<String>,
     state: &Arc<AppState>,
-) -> Result<ApUser, anyhow::Error> {
+) -> anyhow::Result<ApUser> {
     let mut conn = state.db_pool.get().await?;
     let ap_id = format!("https://{}/u/{}", std::env::var("CRYAP_DOMAIN")?, name);
 
@@ -76,7 +76,7 @@ pub async fn register(
     ))
 }
 
-pub async fn get_instances(state: &Arc<AppState>) -> Result<Vec<String>, anyhow::Error> {
+pub async fn get_instances(state: &Arc<AppState>) -> anyhow::Result<Vec<String>> {
     Ok(users::table
         .filter(users::local.eq(false))
         .distinct()

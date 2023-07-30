@@ -30,7 +30,7 @@ impl Post {
     pub async fn by_id(
         id: &DbId,
         db_pool: &Pool<AsyncPgConnection>,
-    ) -> Result<Option<Self>, anyhow::Error> {
+    ) -> anyhow::Result<Option<Self>> {
         let post = posts::table
             .filter(posts::id.eq(id))
             .first::<Self>(&mut db_pool.get().await?)
