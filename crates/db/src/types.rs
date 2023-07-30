@@ -1,6 +1,7 @@
 use std::fmt;
 
 use diesel_derive_newtype::DieselNewType;
+use serde::{Serialize, Deserialize};
 use svix_ksuid::KsuidLike;
 
 #[derive(DieselNewType, Debug, Hash, PartialEq, Eq, Clone)]
@@ -30,7 +31,10 @@ impl From<svix_ksuid::Ksuid> for DbId {
     }
 }
 
-#[derive(diesel_derive_enum::DbEnum, Debug, Clone, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(
+    diesel_derive_enum::DbEnum, Debug, Clone, PartialEq, PartialOrd, Ord, Eq, Serialize, Deserialize,
+)]
+#[serde(rename_all = "camelCase")]
 #[ExistingTypePath = "crate::schema::sql_types::Visibility"]
 pub enum DbVisibility {
     Public,
