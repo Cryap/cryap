@@ -3,7 +3,10 @@ use std::sync::Arc;
 use axum::{extract::State, response::IntoResponse, routing::get, Json, Router};
 use web::{errors::AppError, AppState};
 
-use crate::entities::{instance_v1, instance_v2, Rule};
+use crate::{
+    common::users,
+    entities::{instance_v1, instance_v2, Rule},
+};
 
 // https://docs.joinmastodon.org/methods/instance/#v2
 pub async fn http_get_instance_v2(
@@ -40,9 +43,17 @@ pub async fn http_get_instance_rules(
     .into_response())
 }
 
+// https://docs.joinmastodon.org/methods/instance/#peers
+pub async fn http_get_instance_peers(
+    state: State<Arc<AppState>>,
+) -> Result<impl IntoResponse, AppError> {
+    Ok(Json(users::get_instances(&state).await?).into_response())
+}
+
 pub fn instance() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/v2/instance", get(http_get_instance_v2))
         .route("/api/v1/instance", get(http_get_instance_v1))
         .route("/api/v1/instance/rules", get(http_get_instance_rules))
+        .route("/api/v1/instance/peers", get(http_get_instance_peers))
 }

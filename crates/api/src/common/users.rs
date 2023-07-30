@@ -9,7 +9,7 @@ use argon2::{
 };
 use chrono::Utc;
 use db::{models::user::User, schema::users, types::DbId};
-use diesel::insert_into;
+use diesel::{insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use web::AppState;
 
@@ -21,9 +21,9 @@ pub async fn register(
     password: String,
     bio: Option<String>,
     display_name: Option<String>,
-    data: &Arc<AppState>,
+    state: &Arc<AppState>,
 ) -> Result<ApUser, anyhow::Error> {
-    let mut conn = data.db_pool.get().await?;
+    let mut conn = state.db_pool.get().await?;
     let ap_id = format!("https://{}/u/{}", std::env::var("CRYAP_DOMAIN")?, name);
 
     let keypair = generate_actor_keypair()?;
@@ -74,4 +74,13 @@ pub async fn register(
             .get_result::<User>(&mut conn)
             .await?,
     ))
+}
+
+pub async fn get_instances(state: &Arc<AppState>) -> Result<Vec<String>, anyhow::Error> {
+    Ok(users::table
+        .filter(users::local.eq(false))
+        .distinct()
+        .select(users::instance)
+        .load(&mut state.db_pool.get().await?)
+        .await?)
 }
