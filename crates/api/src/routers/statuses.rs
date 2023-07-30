@@ -20,7 +20,7 @@ pub async fn http_get_get(
     let id = DbId::from(id);
     let user = Post::by_id(&id, &state.db_pool).await?;
     match user {
-        Some(user) => Ok(Json(Status::new(user, None, &state).await?).into_response()),
+        Some(user) => Ok(Json(Status::build(user, None, &state).await?).into_response()),
         None => Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()),
     }
 }

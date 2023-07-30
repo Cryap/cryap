@@ -1,7 +1,7 @@
 use std::fmt;
 
 use diesel_derive_newtype::DieselNewType;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use svix_ksuid::KsuidLike;
 
 #[derive(DieselNewType, Debug, Hash, PartialEq, Eq, Clone)]

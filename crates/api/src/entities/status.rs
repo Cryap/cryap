@@ -36,7 +36,7 @@ pub struct StatusRelationship {
     // filtered
 }
 
-// TODO: Fully implement https://docs.joinmastodon.org/entities/Account/
+// TODO: Fully implement https://docs.joinmastodon.org/entities/Status/
 #[derive(Serialize, Debug)]
 pub struct Status {
     pub id: String,
@@ -68,7 +68,7 @@ pub struct Status {
 }
 
 impl Status {
-    pub async fn new(
+    pub async fn build(
         status: Post,
         _actor: Option<db::models::User>, // TODO
         data: &Arc<AppState>,
