@@ -1,6 +1,7 @@
 pub mod accounts;
 pub mod apps;
 pub mod auth;
+pub mod instance;
 pub mod statuses;
 
 use std::sync::Arc;
@@ -14,4 +15,5 @@ pub fn api(state: Arc<AppState>) -> Router<Arc<AppState>> {
         .merge(statuses::statuses(&state))
         .merge(apps::apps(&state))
         .merge(auth::auth())
+        .merge(instance::instance())
 }

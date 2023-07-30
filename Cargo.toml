@@ -10,11 +10,13 @@ members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
+repository = "https://codeberg.org/cryap/cryap"
 
 [package]
 name = "cryap"
 version.workspace = true
 edition.workspace = true
+repository.workspace = true
 default-run = "cryap"
 
 [dependencies]

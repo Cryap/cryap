@@ -7,3 +7,9 @@ uri = "postgres://postgres:example@127.0.0.1:5432/postgres"
 
 [redis]
 uri = "redis://127.0.0.1"
+
+[instance]
+title = "Cryap"
+description = "A Cryap instance"
+languages = ["en"]
+rules = ["Example rule 1", "Example rule 2"]
