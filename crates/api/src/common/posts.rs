@@ -1,22 +1,25 @@
 use std::sync::Arc;
 
 use activitypub_federation::{
-    activity_queue::send_activity, config::Data, fetch::webfinger::webfinger_resolve_actor,
-    traits::Object,
+    activity_queue::send_activity,
+    config::Data,
+    fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
+    traits::{Actor, Object},
 };
 use anyhow::anyhow;
 use ap::{
-    activities::create::note::CreateNote,
+    activities::{create::note::CreateNote, like::Like, undo::like::UndoLike},
     objects::{note::ApNote, user::ApUser},
 };
 use chrono::Utc;
 use db::{
-    models::{user::User, Post, PostMention},
-    schema::{post_mention, posts},
+    models::{interactions::PostLike, user::User, Post, PostMention},
+    schema::{post_like, post_like::dsl, post_mention, posts},
     types::{DbId, DbVisibility},
 };
-use diesel::insert_into;
+use diesel::{delete, insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
+use url::Url;
 use web::AppState;
 
 use super::users::MENTION_RE;
@@ -48,11 +51,7 @@ fn match_mentions(content: String) -> Vec<String> {
     mentions
 }
 
-pub async fn post(
-    by: &User,
-    options: NewPost,
-    data: &Data<Arc<AppState>>,
-) -> anyhow::Result<()> {
+pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> anyhow::Result<()> {
     let mut conn = data.db_pool.get().await?;
     let id = DbId::default();
     let ap_id = format!(
@@ -123,6 +122,77 @@ pub async fn post(
         .do_nothing()
         .execute(&mut conn)
         .await?;
+
+    Ok(())
+}
+
+pub async fn like(user: &User, post: &Post, data: &Data<Arc<AppState>>) -> anyhow::Result<()> {
+    let mut conn = data.db_pool.get().await?;
+    let id = Url::parse(&format!(
+        "{}/activities/likes/{}",
+        user.ap_id,
+        DbId::default().to_string()
+    ))?;
+    let activity = Like {
+        id: id.clone(),
+        kind: Default::default(),
+        actor: ObjectId::<ApUser>::from(Url::parse(&user.ap_id)?),
+        object: ObjectId::<ApNote>::from(Url::parse(&post.ap_id)?),
+    };
+
+    let inboxes = vec![ApUser(post.author(&data.db_pool).await?).shared_inbox_or_inbox()];
+    send_activity(activity, &ApUser(user.clone()), inboxes, &data).await?;
+
+    insert_into(dsl::post_like)
+        .values(vec![PostLike {
+            actor_id: user.id.clone(),
+            post_id: post.id.clone(),
+            ap_id: id.to_string(),
+        }])
+        .on_conflict((post_like::actor_id, post_like::post_id))
+        .do_nothing()
+        .execute(&mut conn)
+        .await?;
+
+    Ok(())
+}
+
+pub async fn unlike(user: &User, post: &Post, data: &Data<Arc<AppState>>) -> anyhow::Result<()> {
+    let mut conn = data.db_pool.get().await?;
+    let undo_id = Url::parse(&format!(
+        "{}/activities/undo/likes/{}",
+        user.ap_id,
+        DbId::default().to_string()
+    ))?;
+    let like_id = post_like::table
+        .select(post_like::ap_id)
+        .filter(post_like::actor_id.eq(user.id.clone()))
+        .filter(post_like::post_id.eq(post.id.clone()))
+        .first::<String>(&mut conn)
+        .await?;
+
+    let activity = UndoLike {
+        actor: ObjectId::<ApUser>::from(Url::parse(&user.ap_id)?),
+        object: Like {
+            id: Url::parse(&like_id)?,
+            kind: Default::default(),
+            actor: ObjectId::<ApUser>::from(Url::parse(&user.ap_id)?),
+            object: ObjectId::<ApNote>::from(Url::parse(&post.ap_id)?),
+        },
+        kind: Default::default(),
+        id: undo_id,
+    };
+
+    let inboxes = vec![ApUser(post.author(&data.db_pool).await?).shared_inbox_or_inbox()];
+    send_activity(activity, &ApUser(user.clone()), inboxes, &data).await?;
+
+    let _ = delete(
+        post_like::table
+            .filter(post_like::actor_id.eq(user.id.clone()))
+            .filter(post_like::post_id.eq(post.id.clone())),
+    )
+    .execute(&mut conn)
+    .await;
 
     Ok(())
 }

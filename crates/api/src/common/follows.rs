@@ -59,11 +59,7 @@ pub async fn want_to_follow(
     Ok(())
 }
 
-pub async fn unfollow(
-    by: &User,
-    to: &User,
-    data: &Data<Arc<AppState>>,
-) -> anyhow::Result<()> {
+pub async fn unfollow(by: &User, to: &User, data: &Data<Arc<AppState>>) -> anyhow::Result<()> {
     let mut conn = data.db_pool.get().await?;
     let undo_id = Url::parse(&format!(
         "{}/activities/undo/follows/{}",

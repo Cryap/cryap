@@ -19,11 +19,11 @@ use crate::objects::{note::ApNote, user::ApUser};
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Like {
-    pub(crate) actor: ObjectId<ApUser>,
-    pub(crate) object: ObjectId<ApNote>,
+    pub actor: ObjectId<ApUser>,
+    pub object: ObjectId<ApNote>,
     #[serde(rename = "type")]
-    pub(crate) kind: LikeType,
-    pub(crate) id: Url,
+    pub kind: LikeType,
+    pub id: Url,
 }
 
 #[async_trait]

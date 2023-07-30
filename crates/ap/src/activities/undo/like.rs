@@ -16,11 +16,11 @@ use crate::{activities::like::Like, objects::user::ApUser};
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoLike {
-    pub(crate) actor: ObjectId<ApUser>,
-    pub(crate) object: Like,
+    pub actor: ObjectId<ApUser>,
+    pub object: Like,
     #[serde(rename = "type")]
-    pub(crate) kind: UndoType,
-    pub(crate) id: Url,
+    pub kind: UndoType,
+    pub id: Url,
 }
 
 #[async_trait]
