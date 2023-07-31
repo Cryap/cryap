@@ -69,24 +69,24 @@ pub struct Status {
 
 impl Status {
     pub async fn build(
-        status: Post,
-        _actor: Option<db::models::User>, // TODO
+        post: Post,
+        _user: Option<db::models::User>, // TODO
         data: &Arc<AppState>,
     ) -> anyhow::Result<Self> {
         let mut conn = data.db_pool.get().await?;
 
-        match status.visibility {
+        match post.visibility {
             DbVisibility::Public | DbVisibility::Unlisted => {}
             _ => return Err(anyhow!("Access forbidden")), // TODO: Access check
         }
 
         let reblogs_count: i64 = post_boost
-            .filter(post_boost_dsl::post_id.eq(status.id.clone()))
+            .filter(post_boost_dsl::post_id.eq(post.id.clone()))
             .count()
             .get_result(&mut conn)
             .await?;
         let favourites_count: i64 = post_like
-            .filter(post_like_dsl::post_id.eq(status.id.clone()))
+            .filter(post_like_dsl::post_id.eq(post.id.clone()))
             .count()
             .get_result(&mut conn)
             .await?;
@@ -96,31 +96,31 @@ impl Status {
         let favourites_count: u32 = favourites_count.try_into().unwrap();
 
         let mentions: Vec<User> = post_mention
-            .filter(post_mention_dsl::post_id.eq(status.id.clone()))
+            .filter(post_mention_dsl::post_id.eq(post.id.clone()))
             .inner_join(users)
             .select(User::as_select())
             .load(&mut conn)
             .await?;
 
-        let in_reply = match status.in_reply.clone() {
+        let in_reply = match post.in_reply.clone() {
             Some(post_id) => Post::by_id(&post_id, &data.db_pool).await?,
             None => None,
         };
 
         Ok(Status {
-            id: status.id.to_string(),
-            uri: status.ap_id.to_string(),
-            created_at: status.published.to_string(),
+            id: post.id.to_string(),
+            uri: post.ap_id.to_string(),
+            created_at: post.published.to_string(),
             account: Account::new(
-                match User::by_id(&status.author.clone(), &data.db_pool).await? {
+                match User::by_id(&post.author.clone(), &data.db_pool).await? {
                     Some(user) => user,
                     None => unreachable!(),
                 },
             ),
-            content: status.content.clone(),
-            visibility: status.visibility,
-            sensitive: status.sensitive,
-            spoiler_text: status.content_warning.unwrap_or("".to_string()),
+            content: post.content.clone(),
+            visibility: post.visibility,
+            sensitive: post.sensitive,
+            spoiler_text: post.content_warning.unwrap_or("".to_string()),
             mentions: mentions
                 .into_iter()
                 .map(|user| StatusMention {
@@ -137,14 +137,14 @@ impl Status {
             reblogs_count,
             favourites_count,
             replies_count: 0, // TODO: Find way to efficiently count replies of specific post
-            url: status.ap_id.to_string(),
-            in_reply_to_id: status.in_reply.map(|id| id.to_string()),
-            in_reply_to_account_id: in_reply.map(|status| status.author.to_string()),
+            url: post.ap_id.to_string(),
+            in_reply_to_id: post.in_reply.map(|id| id.to_string()),
+            in_reply_to_account_id: in_reply.map(|post| post.author.to_string()),
             reblog: None,
             pool: None,
             card: None,
             language: None,
-            text: status.content, // TODO: remove html tags maybe
+            text: post.content, // TODO: remove html tags maybe
             edited_at: None,
             relationship: None,
         })
