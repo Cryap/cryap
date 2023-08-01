@@ -34,7 +34,10 @@
           ];
         };
 
-	toolchain = pkgs.rust-bin.nightly.latest.default;
+	toolchain = pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default.override {
+          extensions = [ "rust-src" ];
+          targets = [ "wasm32-unknown-unknown" ];
+        });
 
         inherit (pkgs) lib;
 
@@ -126,8 +129,9 @@
         devShells.default = pkgs.mkShell {
           inputsFrom = builtins.attrValues self.checks.${system};
 
-          # Additional dev-shell environment variables can be set directly
-          # MY_CUSTOM_DEVELOPMENT_VAR = "something else";
+	  shellHook = ''
+    export FRONTEND_DIST=$(pwd)/crates/frontend/dist
+  '';
 
           # Extra inputs can be added here
           nativeBuildInputs = with pkgs; [
@@ -135,6 +139,7 @@
 	    openssl
 	    pkg-config
 	    yarn
+	    trunk
           ];
         };
       });

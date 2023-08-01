@@ -2,6 +2,7 @@
 
 mod config;
 mod router;
+mod frontend;
 
 use std::{
     net::{IpAddr, SocketAddr},
@@ -19,6 +20,7 @@ use redis::aio::ConnectionManager;
 use serde::{Deserialize, Serialize};
 use url::Url;
 use web::AppState;
+use tokio_util::task::LocalPoolHandle;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ServiceActorData {
@@ -85,6 +87,7 @@ async fn main() -> anyhow::Result<()> {
         db_pool,
         redis: ConnectionManager::new(redis_client).await?,
         config,
+        local_pool: LocalPoolHandle::new(20),
     });
 
     let data = FederationConfig::builder()

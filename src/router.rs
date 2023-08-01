@@ -5,26 +5,24 @@ use ap::{objects::service_actor::ServiceActor, routers::ap};
 use api::routers::api;
 use axum::Router;
 use tower_http::{
-    services::{ServeDir, ServeFile},
     trace::TraceLayer,
 };
+use axum::routing::get;
 use web::AppState;
+
+use crate::frontend::ssr_handler;
 
 pub fn app(
     federation_config: FederationConfig<Arc<AppState>>,
     service_actor: ServiceActor,
 ) -> Router {
-    let serve_dir = ServeDir::new(format!("{}/../frontend/dist", env!("CARGO_MANIFEST_DIR")))
-        .not_found_service(ServeFile::new(format!(
-            "{}/../frontend/dist/index.html",
-            env!("CARGO_MANIFEST_DIR")
-        )));
     let state = Arc::clone(&*federation_config);
 
     Router::new()
         .merge(ap(service_actor))
         .merge(api(Arc::clone(&state)).with_state(state))
+        .merge(crate::frontend::resources())
+        .fallback_service(get(ssr_handler))
         .layer(FederationMiddleware::new(federation_config))
         .layer(TraceLayer::new_for_http())
-        .fallback_service(serve_dir)
 }
