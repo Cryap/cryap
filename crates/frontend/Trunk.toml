@@ -1,2 +1,9 @@
 [build]
 public_url = "/assets/"
+
+[serve]
+address = "0.0.0.0"
+
+[[proxy]]
+backend = "http://localhost:8000"
+
