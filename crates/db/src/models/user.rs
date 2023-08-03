@@ -4,6 +4,7 @@ use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQuer
 use crate::{
     schema::{user_follow_requests, user_followers, users},
     types::DbId,
+    utils::coalesce,
 };
 
 #[derive(
@@ -139,5 +140,18 @@ impl User {
             Err(NotFound) => Ok(false),
             Err(err) => Err(err.into()),
         }
+    }
+
+    pub async fn following_inboxes(
+        &self,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Vec<String>> {
+        Ok(user_followers::table
+            .filter(user_followers::follower_id.eq(&self.id))
+            .inner_join(users::dsl::users.on(users::id.eq(user_followers::actor_id)))
+            .select(coalesce(users::shared_inbox_uri, users::inbox_uri))
+            .distinct()
+            .load::<String>(&mut db_pool.get().await?)
+            .await?)
     }
 }

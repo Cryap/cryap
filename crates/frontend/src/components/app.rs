@@ -1,9 +1,4 @@
-use leptos::component;use leptos::view;
-
-use leptos::Scope;
-use leptos::IntoView;
-use leptos::create_signal;
-use leptos::SignalUpdate;
+use leptos::{component, create_signal, view, IntoView, Scope, SignalUpdate};
 
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {

@@ -3,7 +3,7 @@ use db::models::User;
 use serde::Serialize;
 
 // TODO: Fully implement https://docs.joinmastodon.org/entities/Account/
-#[derive(Serialize, Debug)]
+#[derive(Clone, Serialize, Debug)]
 pub struct Account {
     pub id: String,
     pub url: String,

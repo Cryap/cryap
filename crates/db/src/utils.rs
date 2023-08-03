@@ -1,3 +1,7 @@
+use diesel::{
+    sql_function,
+    sql_types::{Nullable, Text},
+};
 use rand::{distributions::Alphanumeric, Rng};
 
 pub fn random_string(size: usize) -> String {
@@ -7,3 +11,5 @@ pub fn random_string(size: usize) -> String {
         .map(char::from)
         .collect()
 }
+
+sql_function! { fn coalesce(x: Nullable<Text>, y: Text) -> Text; }

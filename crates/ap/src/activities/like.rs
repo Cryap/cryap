@@ -5,7 +5,7 @@ use activitypub_federation::{
 };
 use async_trait::async_trait;
 use db::{
-    models::interactions::PostLike,
+    models::PostLike,
     schema::{post_like, post_like::dsl},
 };
 use diesel::insert_into;

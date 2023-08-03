@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use anyhow::anyhow;
 use db::{
-    models::{Post, User},
+    models::{Post, PostBoost, User},
     schema::{
         post_boost::{dsl as post_boost_dsl, dsl::post_boost},
         post_like::{dsl as post_like_dsl, dsl::post_like},
@@ -18,7 +18,7 @@ use web::AppState;
 
 use super::Account;
 
-#[derive(Serialize, Debug)]
+#[derive(Clone, Serialize, Debug)]
 pub struct StatusMention {
     pub id: String,
     pub username: String,
@@ -26,7 +26,7 @@ pub struct StatusMention {
     pub acct: String,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Clone, Serialize, Debug)]
 pub struct StatusRelationship {
     pub favourited: bool,
     pub reblogged: bool,
@@ -37,7 +37,7 @@ pub struct StatusRelationship {
 }
 
 // TODO: Fully implement https://docs.joinmastodon.org/entities/Status/
-#[derive(Serialize, Debug)]
+#[derive(Clone, Serialize, Debug)]
 pub struct Status {
     pub id: String,
     pub uri: String,
@@ -70,7 +70,7 @@ pub struct Status {
 impl Status {
     pub async fn build(
         post: Post,
-        _user: Option<db::models::User>, // TODO
+        _user: Option<User>, // TODO
         data: &Arc<AppState>,
     ) -> anyhow::Result<Self> {
         let mut conn = data.db_pool.get().await?;
@@ -111,12 +111,7 @@ impl Status {
             id: post.id.to_string(),
             uri: post.ap_id.to_string(),
             created_at: post.published.to_string(),
-            account: Account::new(
-                match User::by_id(&post.author.clone(), &data.db_pool).await? {
-                    Some(user) => user,
-                    None => unreachable!(),
-                },
-            ),
+            account: Account::new(post.author(&data.db_pool).await?),
             content: post.content.clone(),
             visibility: post.visibility,
             sensitive: post.sensitive,
@@ -147,6 +142,26 @@ impl Status {
             text: post.content, // TODO: remove html tags maybe
             edited_at: None,
             relationship: None,
+        })
+    }
+
+    pub async fn build_from_boost(
+        boost: PostBoost,
+        user: Option<User>, // TODO
+        data: &Arc<AppState>,
+    ) -> anyhow::Result<Self> {
+        let post = boost.post(&data.db_pool).await?;
+        let status = Self::build(post, user, data).await?;
+
+        Ok(Status {
+            id: boost.id.to_string(),
+            uri: boost.ap_id.to_string(),
+            url: boost.ap_id.to_string(),
+            created_at: boost.published.to_string(),
+            account: Account::new(boost.author(&data.db_pool).await?),
+            visibility: boost.visibility,
+            reblog: Some(Box::new(status.clone())),
+            ..status
         })
     }
 }

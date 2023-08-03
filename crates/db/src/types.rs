@@ -42,3 +42,15 @@ pub enum DbVisibility {
     Private,
     Direct,
 }
+
+impl DbVisibility {
+    pub fn from_string(string: &str) -> Option<Self> {
+        match string {
+            "public" => Some(Self::Public),
+            "unlisted" => Some(Self::Unlisted),
+            "private" => Some(Self::Private),
+            "direct" => Some(Self::Direct),
+            _ => None,
+        }
+    }
+}

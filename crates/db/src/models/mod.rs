@@ -1,6 +1,7 @@
 pub mod application;
-pub mod interactions;
 pub mod post;
+pub mod post_boost;
+pub mod post_like;
 pub mod redirect_code;
 pub mod session;
 pub mod user;
@@ -9,6 +10,8 @@ pub mod user_followers;
 
 pub use application::Application;
 pub use post::{Post, PostMention};
+pub use post_boost::PostBoost;
+pub use post_like::PostLike;
 pub use redirect_code::RedirectCode;
 pub use session::Session;
 pub use user::User;

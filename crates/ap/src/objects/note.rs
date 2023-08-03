@@ -76,6 +76,28 @@ pub fn parse_to_cc(to: &Vec<Url>, cc: &Vec<Url>, actor_followers_uri: Url) -> Db
     }
 }
 
+pub fn construct_to_cc(
+    visibility: &DbVisibility,
+    followers_uri: Url,
+    mention_ids: Vec<Url>,
+) -> (Vec<Url>, Vec<Url>) {
+    match visibility {
+        DbVisibility::Public => (
+            vec![Url::parse(PUBLIC).unwrap()],
+            vec![followers_uri].into_iter().chain(mention_ids).collect(),
+        ),
+        DbVisibility::Unlisted => (
+            vec![],
+            vec![Url::parse(PUBLIC).unwrap(), followers_uri]
+                .into_iter()
+                .chain(mention_ids)
+                .collect(),
+        ),
+        DbVisibility::Private => (vec![followers_uri], mention_ids),
+        DbVisibility::Direct => (mention_ids, vec![]),
+    }
+}
+
 #[serde_as]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -154,8 +176,6 @@ impl Object for ApNote {
             },
         };
 
-        let instance = std::env::var("CRYAP_DOMAIN")?;
-
         let mentions: Vec<User> = db::schema::post_mention::dsl::post_mention
             .inner_join(
                 db::schema::posts::dsl::posts.on(db::schema::posts::dsl::id.eq(self.id.clone())),
@@ -180,23 +200,18 @@ impl Object for ApNote {
             tags.push(NoteTags::Mention(Mention {
                 kind: Default::default(),
                 href: Url::parse(&mention.ap_id)?,
-                name: Some(match mention.instance == instance {
+                name: Some(match mention.instance == data.config.web.domain {
                     true => format!("@{}", mention.name),
                     false => format!("@{}@{}", mention.name, mention.instance),
                 }),
             }))
         }
 
-        let (cc, to): (Vec<Url>, Vec<Url>) = match self.visibility {
-            DbVisibility::Public => (
-                vec![Url::parse(&attributed_to.followers_uri)?]
-                    .into_iter()
-                    .chain(mention_ids)
-                    .collect(),
-                vec![Url::parse(PUBLIC).unwrap()],
-            ),
-            _ => todo!(),
-        };
+        let (to, cc) = construct_to_cc(
+            &self.visibility,
+            Url::parse(&attributed_to.followers_uri)?,
+            mention_ids,
+        );
 
         Ok(Note {
             kind: Default::default(),
@@ -250,7 +265,7 @@ impl Object for ApNote {
             Some(ref quote) => Some(quote.dereference(data).await?.id.clone()),
         };
 
-        let user = Post {
+        let post = Post {
             id: DbId::from(svix_ksuid::Ksuid::new(
                 json.published
                     .map(|f| time::OffsetDateTime::from_unix_timestamp(f.timestamp()).unwrap()),
@@ -274,10 +289,10 @@ impl Object for ApNote {
         };
 
         let post_db = insert_into(posts::table)
-            .values(user.clone())
+            .values(post.clone())
             .on_conflict(posts::ap_id)
             .do_update()
-            .set(user)
+            .set(post)
             .get_result::<Post>(&mut conn)
             .await?;
 

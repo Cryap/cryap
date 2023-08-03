@@ -3,8 +3,8 @@ use diesel::{dsl::sql, prelude::*, result::Error::NotFound, sql_types::Bool};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
 use crate::{
-    models::User,
-    schema::{post_like, post_mention, posts},
+    models::{PostBoost, User},
+    schema::{post_boost, post_like, post_mention, posts},
     types::{DbId, DbVisibility},
 };
 
@@ -64,6 +64,23 @@ impl Post {
         match result {
             Ok(_) => Ok(true),
             Err(NotFound) => Ok(false),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    pub async fn boost_by(
+        &self,
+        user: &User,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Option<PostBoost>> {
+        let boost = post_boost::table
+            .filter(post_boost::post_id.eq(&self.id))
+            .filter(post_boost::actor_id.eq(&user.id))
+            .first::<PostBoost>(&mut db_pool.get().await?)
+            .await;
+        match boost {
+            Ok(boost) => Ok(Some(boost)),
+            Err(NotFound) => Ok(None),
             Err(err) => Err(err.into()),
         }
     }

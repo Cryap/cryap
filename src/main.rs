@@ -1,8 +1,8 @@
 #![forbid(unsafe_code)]
 
 mod config;
-mod router;
 mod frontend;
+mod router;
 
 use std::{
     net::{IpAddr, SocketAddr},
@@ -18,9 +18,9 @@ use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManag
 use listenfd::ListenFd;
 use redis::aio::ConnectionManager;
 use serde::{Deserialize, Serialize};
+use tokio_util::task::LocalPoolHandle;
 use url::Url;
 use web::AppState;
-use tokio_util::task::LocalPoolHandle;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ServiceActorData {

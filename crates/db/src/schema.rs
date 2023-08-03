@@ -25,13 +25,20 @@ diesel::table! {
 }
 
 diesel::table! {
-    post_boost (ap_id) {
+    use diesel::sql_types::*;
+    use super::sql_types::Visibility;
+
+    post_boost (id) {
+        #[max_length = 27]
+        id -> Bpchar,
         #[max_length = 200]
         ap_id -> Varchar,
         #[max_length = 27]
         post_id -> Bpchar,
         #[max_length = 27]
         actor_id -> Bpchar,
+        visibility -> Visibility,
+        published -> Timestamp,
     }
 }
 

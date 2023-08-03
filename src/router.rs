@@ -3,11 +3,8 @@ use std::sync::Arc;
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use ap::{objects::service_actor::ServiceActor, routers::ap};
 use api::routers::api;
-use axum::Router;
-use tower_http::{
-    trace::TraceLayer,
-};
-use axum::routing::get;
+use axum::{routing::get, Router};
+use tower_http::trace::TraceLayer;
 use web::AppState;
 
 use crate::frontend::ssr_handler;

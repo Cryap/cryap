@@ -24,7 +24,7 @@ pub async fn register(
     state: &Arc<AppState>,
 ) -> anyhow::Result<ApUser> {
     let mut conn = state.db_pool.get().await?;
-    let ap_id = format!("https://{}/u/{}", std::env::var("CRYAP_DOMAIN")?, name);
+    let ap_id = format!("https://{}/u/{}", state.config.web.domain, name);
 
     let keypair = generate_actor_keypair()?;
 
@@ -49,11 +49,11 @@ pub async fn register(
         ap_id: ap_id.clone(),
         local: true,
         inbox_uri: format!("{ap_id}/ap/inbox"),
-        shared_inbox_uri: None, //Some(format!("https://{}/inbox", std::env::var("CRYAP_DOMAIN")?)),
+        shared_inbox_uri: None, //Some(format!("https://{}/inbox", state.config.web.domain)),
         outbox_uri: format!("{ap_id}/ap/outbox"),
         followers_uri: format!("{ap_id}/ap/followers"),
         name,
-        instance: std::env::var("CRYAP_DOMAIN")?,
+        instance: state.config.web.domain.clone(),
         display_name,
         bio,
         password_encrypted: Some(password_hash),

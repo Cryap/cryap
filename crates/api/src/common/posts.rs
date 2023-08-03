@@ -9,12 +9,12 @@ use activitypub_federation::{
 use anyhow::anyhow;
 use ap::{
     activities::{create::note::CreateNote, like::Like, undo::like::UndoLike},
-    objects::{note::ApNote, user::ApUser},
+    objects::{announce::ApAnnounce, note::ApNote, user::ApUser},
 };
 use chrono::Utc;
 use db::{
-    models::{interactions::PostLike, user::User, Post, PostMention},
-    schema::{post_like, post_like::dsl, post_mention, posts},
+    models::{Post, PostBoost, PostLike, PostMention, User},
+    schema::{post_boost, post_like, post_mention, posts},
     types::{DbId, DbVisibility},
 };
 use diesel::{delete, insert_into, ExpressionMethods, QueryDsl};
@@ -56,7 +56,7 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
     let id = DbId::default();
     let ap_id = format!(
         "https://{}/u/{}",
-        std::env::var("CRYAP_DOMAIN")?,
+        data.config.web.domain,
         id.clone().to_string()
     );
 
@@ -126,6 +126,57 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
     Ok(())
 }
 
+pub async fn boost(
+    user: &User,
+    post: &Post,
+    visibility: DbVisibility,
+    data: &Data<Arc<AppState>>,
+) -> anyhow::Result<PostBoost> {
+    let mut conn = data.db_pool.get().await?;
+    let id = DbId::default();
+    let ap_id = format!("{}/activities/boosts/{}", user.ap_id, id.to_string());
+
+    let object = PostBoost {
+        id,
+        ap_id,
+        post_id: post.id.clone(),
+        actor_id: user.id.clone(),
+        visibility,
+        published: Utc::now().naive_utc(),
+    };
+
+    if !post.local_only {
+        let activity = ApAnnounce(object.clone()).into_json(data).await?;
+
+        let user = ApUser(user.clone());
+        let mut inboxes = user.following_inboxes(&data.db_pool).await?;
+        let author_inbox = user.shared_inbox_or_inbox().to_string();
+        if !inboxes.contains(&author_inbox) {
+            inboxes.push(author_inbox);
+        }
+
+        send_activity(
+            activity,
+            &user,
+            inboxes
+                .into_iter()
+                .map(|inbox| Url::parse(&inbox))
+                .collect::<Result<Vec<Url>, url::ParseError>>()?,
+            &data,
+        )
+        .await?;
+    }
+
+    let object_db = insert_into(post_boost::dsl::post_boost)
+        .values(vec![object])
+        .on_conflict((post_boost::actor_id, post_boost::post_id))
+        .do_nothing()
+        .get_result::<PostBoost>(&mut conn)
+        .await?;
+
+    Ok(object_db)
+}
+
 pub async fn like(user: &User, post: &Post, data: &Data<Arc<AppState>>) -> anyhow::Result<()> {
     let mut conn = data.db_pool.get().await?;
     let id = Url::parse(&format!(
@@ -143,7 +194,7 @@ pub async fn like(user: &User, post: &Post, data: &Data<Arc<AppState>>) -> anyho
     let inboxes = vec![ApUser(post.author(&data.db_pool).await?).shared_inbox_or_inbox()];
     send_activity(activity, &ApUser(user.clone()), inboxes, &data).await?;
 
-    insert_into(dsl::post_like)
+    insert_into(post_like::dsl::post_like)
         .values(vec![PostLike {
             actor_id: user.id.clone(),
             post_id: post.id.clone(),
