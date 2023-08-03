@@ -18,11 +18,28 @@ use db::{
     types::{DbId, DbVisibility},
 };
 use diesel::{delete, insert_into, ExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
+use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 use url::Url;
 use web::AppState;
 
 use super::users::MENTION_RE;
+
+pub async fn post_or_boost_by_id(
+    id: &DbId,
+    db_pool: &Pool<AsyncPgConnection>,
+) -> anyhow::Result<(Option<Post>, Option<PostBoost>)> {
+    let post = Post::by_id(&id, db_pool).await?;
+    if let Some(post) = post {
+        return Ok((Some(post), None));
+    }
+
+    let boost = PostBoost::by_id(&id, db_pool).await?;
+    if let Some(boost) = boost {
+        return Ok((Some(boost.post(db_pool).await?), Some(boost)));
+    }
+
+    Ok((None, None))
+}
 
 pub struct NewPost {
     pub visibility: DbVisibility,

@@ -6,8 +6,8 @@ use axum::{
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-#[derive(Serialize, Debug)]
 #[skip_serializing_none]
+#[derive(Serialize, Debug)]
 pub struct ApiError {
     pub error: String,
     #[serde(rename = "error_description")]

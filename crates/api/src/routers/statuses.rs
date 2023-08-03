@@ -11,7 +11,7 @@ use axum::{
     Extension, Json, Router,
 };
 use db::{
-    models::{Post, Session},
+    models::{Post, PostBoost, Session},
     types::{DbId, DbVisibility},
 };
 use serde::Deserialize;
@@ -25,10 +25,16 @@ pub async fn http_get_get(
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, AppError> {
     let id = DbId::from(id);
-    let post = Post::by_id(&id, &state.db_pool).await?;
-    match post {
-        Some(post) => Ok(Json(Status::build(post, None, &state).await?).into_response()),
-        None => Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()),
+    let (post, boost) = posts::post_or_boost_by_id(&id, &state.db_pool).await?;
+    if let Some(post) = post {
+        match boost {
+            Some(boost) => {
+                Ok(Json(Status::build_from_boost(boost, None, &state).await?).into_response())
+            }
+            None => Ok(Json(Status::build(post, None, &state).await?).into_response()),
+        }
+    } else {
+        Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
     }
 }
 
@@ -41,14 +47,19 @@ pub async fn http_post_favourite(
     let id = DbId::from(id);
 
     let user = session.user(&state.db_pool).await?;
-    let post = Post::by_id(&id, &state.db_pool).await?;
+    let (post, boost) = posts::post_or_boost_by_id(&id, &state.db_pool).await?;
 
     if let Some(post) = post {
         if !post.liked_by(&user, &state.db_pool).await? {
             posts::like(&user, &post, &state).await?;
         }
 
-        Ok(Json(Status::build(post, None, &state).await?).into_response())
+        match boost {
+            Some(boost) => {
+                Ok(Json(Status::build_from_boost(boost, None, &state).await?).into_response())
+            }
+            None => Ok(Json(Status::build(post, None, &state).await?).into_response()),
+        }
     } else {
         Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
     }
@@ -63,14 +74,19 @@ pub async fn http_post_unfavourite(
     let id = DbId::from(id);
 
     let user = session.user(&state.db_pool).await?;
-    let post = Post::by_id(&id, &state.db_pool).await?;
+    let (post, boost) = posts::post_or_boost_by_id(&id, &state.db_pool).await?;
 
     if let Some(post) = post {
         if post.liked_by(&user, &state.db_pool).await? {
             posts::unlike(&user, &post, &state).await?;
         }
 
-        Ok(Json(Status::build(post, None, &state).await?).into_response())
+        match boost {
+            Some(boost) => {
+                Ok(Json(Status::build_from_boost(boost, None, &state).await?).into_response())
+            }
+            None => Ok(Json(Status::build(post, None, &state).await?).into_response()),
+        }
     } else {
         Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
     }
@@ -91,7 +107,7 @@ pub async fn http_post_reblog(
     let id = DbId::from(id);
 
     let user = session.user(&state.db_pool).await?;
-    let post = Post::by_id(&id, &state.db_pool).await?;
+    let (post, _) = posts::post_or_boost_by_id(&id, &state.db_pool).await?;
 
     if let Some(post) = post {
         if post.visibility != DbVisibility::Public && post.visibility != DbVisibility::Unlisted {
