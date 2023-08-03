@@ -255,7 +255,7 @@ pub struct TokenBody {
 // TODO: Fully implement https://docs.joinmastodon.org/methods/oauth/#token
 pub async fn http_post_oauth_token(
     state: State<Arc<AppState>>,
-    Json(body): Json<TokenBody>,
+    Form(body): Form<TokenBody>,
 ) -> Result<impl IntoResponse, AppError> {
     let application = match Application::by_client_id(&body.client_id, &state.db_pool).await? {
         Some(application) if application.client_secret == body.client_secret => application,

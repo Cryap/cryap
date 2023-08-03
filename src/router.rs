@@ -4,11 +4,12 @@ use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use ap::{objects::service_actor::ServiceActor, routers::ap};
 use api::routers::api;
 use axum::{routing::get, Router};
-use tower_http::trace::TraceLayer;
-use web::AppState;
-use tower_http::cors::CorsLayer;
-use tower_http::cors::Any;
 use http::Method;
+use tower_http::{
+    cors::{Any, CorsLayer},
+    trace::TraceLayer,
+};
+use web::AppState;
 
 use crate::frontend::ssr_handler;
 
