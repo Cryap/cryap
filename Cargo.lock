@@ -679,6 +679,7 @@ dependencies = [
  "enum_delegate",
  "env_logger",
  "frontend",
+ "http",
  "listenfd",
  "log",
  "mime_guess",

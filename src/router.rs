@@ -6,6 +6,9 @@ use api::routers::api;
 use axum::{routing::get, Router};
 use tower_http::trace::TraceLayer;
 use web::AppState;
+use tower_http::cors::CorsLayer;
+use tower_http::cors::Any;
+use http::Method;
 
 use crate::frontend::ssr_handler;
 
@@ -14,10 +17,16 @@ pub fn app(
     service_actor: ServiceActor,
 ) -> Router {
     let state = Arc::clone(&*federation_config);
+    let cors = CorsLayer::new()
+        // allow `GET` and `POST` when accessing the resource
+        .allow_methods([Method::GET, Method::POST])
+        .allow_headers(Any)
+        // allow requests from any origin
+        .allow_origin(Any);
 
     Router::new()
         .merge(ap(service_actor))
-        .merge(api(Arc::clone(&state)).with_state(state))
+        .merge(api(Arc::clone(&state)).with_state(state).layer(cors))
         .merge(crate::frontend::resources())
         .fallback_service(get(ssr_handler))
         .layer(FederationMiddleware::new(federation_config))
