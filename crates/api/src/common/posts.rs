@@ -4,6 +4,7 @@ use activitypub_federation::{
     activity_queue::send_activity,
     config::Data,
     fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
+    kinds::object,
     traits::{Actor, Object},
 };
 use anyhow::anyhow;
@@ -68,21 +69,21 @@ fn match_mentions(content: String) -> Vec<String> {
     mentions
 }
 
-pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> anyhow::Result<()> {
+pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> anyhow::Result<Post> {
     let mut conn = data.db_pool.get().await?;
     let id = DbId::default();
     let ap_id = format!(
-        "https://{}/u/{}",
+        "https://{}/p/{}",
         data.config.web.domain,
         id.clone().to_string()
     );
 
-    let content = options.content;
+    let mut content = options.content;
 
     let mut mentions: Vec<ApUser> = vec![];
 
     for mention in match_mentions(content.clone()) {
-        mentions.push(if mention.contains("@") {
+        let user = if mention.contains("@") {
             webfinger_resolve_actor(&mention, data).await?
         } else {
             let user = User::by_name(&mention, &data.db_pool).await?;
@@ -90,7 +91,10 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
                 Some(user) => ApUser(user),
                 None => return Err(anyhow!("mentioned local user not found")),
             }
-        });
+        };
+
+        content = content.replace(&format!("@{}", mention), &format!("<a class=\"u-url mention\" href=\"{}\" rel=\"ugc\" data-user=\"{}\">@<span>{}</span>@<span>{}</span></a>", user.ap_id, user.id.to_string(), user.name, user.instance));
+        mentions.push(user);
     }
 
     let object = Post {
@@ -109,7 +113,7 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
         content_warning: options.content_warning,
     };
 
-    let mentions: Vec<PostMention> = mentions
+    let mentions_data: Vec<PostMention> = mentions
         .iter()
         .map(move |mention| PostMention {
             id: DbId::default(),
@@ -121,17 +125,32 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
     if !options.local_only {
         let activity = CreateNote::from(ApNote(object.clone()).into_json(data).await?);
 
-        let inboxes = vec![];
-        send_activity(activity, &ApUser(by.clone()), inboxes, &data).await?;
+        let mut inboxes = by.following_inboxes(&data.db_pool).await?;
+        inboxes.extend(
+            mentions
+                .iter()
+                .map(|mention| mention.shared_inbox_or_inbox().to_string()),
+        );
+
+        send_activity(
+            activity,
+            &ApUser(by.clone()),
+            inboxes
+                .into_iter()
+                .map(|inbox| Url::parse(&inbox))
+                .collect::<Result<Vec<Url>, url::ParseError>>()?,
+            &data,
+        )
+        .await?;
     }
 
     insert_into(posts::dsl::posts)
-        .values(vec![object])
+        .values(vec![object.clone()])
         .execute(&mut conn)
         .await?;
 
     insert_into(post_mention::dsl::post_mention)
-        .values(mentions)
+        .values(mentions_data)
         .on_conflict((
             post_mention::dsl::post_id,
             post_mention::dsl::mentioned_user_id,
@@ -140,7 +159,7 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
         .execute(&mut conn)
         .await?;
 
-    Ok(())
+    Ok(object)
 }
 
 pub async fn boost(

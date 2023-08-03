@@ -20,7 +20,7 @@ pub fn app(
     let state = Arc::clone(&*federation_config);
     let cors = CorsLayer::new()
         // allow `GET` and `POST` when accessing the resource
-        .allow_methods([Method::GET, Method::POST])
+        .allow_methods(Any)
         .allow_headers(Any)
         // allow requests from any origin
         .allow_origin(Any);

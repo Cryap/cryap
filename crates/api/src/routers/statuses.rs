@@ -17,7 +17,54 @@ use db::{
 use serde::Deserialize;
 use web::{errors::AppError, AppState};
 
-use crate::{auth_middleware::auth_middleware, common::posts, entities::Status, error::ApiError};
+use crate::{
+    auth_middleware::auth_middleware,
+    common::{self, posts},
+    entities::Status,
+    error::ApiError,
+};
+
+#[derive(Deserialize)]
+pub struct CreatePostBody {
+    status: String,
+    in_reply_to_id: Option<String>,
+    quote_id: Option<String>,
+    sensitive: Option<bool>,
+    spoiler_text: Option<String>,
+    visibility: Option<DbVisibility>,
+}
+
+// https://docs.joinmastodon.org/methods/statuses/#create
+pub async fn http_post_create(
+    state: Data<Arc<AppState>>,
+    Extension(session): Extension<Session>,
+    Json(body): Json<CreatePostBody>,
+) -> Result<impl IntoResponse, AppError> {
+    let user = session.user(&state.db_pool).await?;
+
+    let post = common::posts::post(
+        &user,
+        posts::NewPost {
+            visibility: body.visibility.unwrap_or(DbVisibility::Public),
+            content: body.status,
+            in_reply: match body.in_reply_to_id {
+                Some(id) => Post::by_id(&DbId::from(id), &state.db_pool).await?,
+                None => None,
+            },
+            quote: match body.quote_id {
+                Some(id) => Post::by_id(&DbId::from(id), &state.db_pool).await?,
+                None => None,
+            },
+            local_only: false,
+            sensitive: body.sensitive.unwrap_or(false),
+            content_warning: body.spoiler_text,
+        },
+        &state,
+    )
+    .await?;
+
+    Ok(Json(Status::build(post, None, &state).await?).into_response())
+}
 
 // https://docs.joinmastodon.org/methods/statuses/#get
 pub async fn http_get_get(
@@ -143,6 +190,10 @@ pub async fn http_post_reblog(
 
 pub fn statuses(state: &Arc<AppState>) -> Router<Arc<AppState>> {
     Router::new()
+        .route(
+            "/api/v1/statuses",
+            post(http_post_create.layer(from_fn_with_state(Arc::clone(state), auth_middleware))),
+        )
         .route("/api/v1/statuses/:id", get(http_get_get))
         .route(
             "/api/v1/statuses/:id/favourite",

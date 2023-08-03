@@ -16,6 +16,7 @@ use db::{
 };
 use diesel::{
     insert_into, query_dsl::QueryDsl, result::Error::NotFound, ExpressionMethods, JoinOnDsl,
+    SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
@@ -177,16 +178,11 @@ impl Object for ApNote {
         };
 
         let mentions: Vec<User> = db::schema::post_mention::dsl::post_mention
-            .inner_join(
-                db::schema::posts::dsl::posts.on(db::schema::posts::dsl::id.eq(self.id.clone())),
-            )
+            .filter(db::schema::post_mention::dsl::post_id.eq(self.id.clone()))
             .inner_join(db::schema::users::dsl::users)
-            .load::<(PostMention, Post, User)>(&mut data.db_pool.get().await?)
-            .await?
-            .into_iter()
-            .map(|f| f.2) // TODO: find more fast method to do this (without returning all
-            // PostMention and Post
-            .collect();
+            .select(User::as_select())
+            .load::<(User)>(&mut data.db_pool.get().await?)
+            .await?;
 
         // Panic safety: should never panic
         let mention_ids: Vec<Url> = mentions
