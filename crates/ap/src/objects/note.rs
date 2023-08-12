@@ -15,8 +15,7 @@ use db::{
     types::{DbId, DbVisibility},
 };
 use diesel::{
-    insert_into, query_dsl::QueryDsl, result::Error::NotFound, ExpressionMethods, JoinOnDsl,
-    SelectableHelper,
+    insert_into, query_dsl::QueryDsl, result::Error::NotFound, ExpressionMethods, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
@@ -181,7 +180,7 @@ impl Object for ApNote {
             .filter(db::schema::post_mention::dsl::post_id.eq(self.id.clone()))
             .inner_join(db::schema::users::dsl::users)
             .select(User::as_select())
-            .load::<(User)>(&mut data.db_pool.get().await?)
+            .load::<User>(&mut data.db_pool.get().await?)
             .await?;
 
         // Panic safety: should never panic

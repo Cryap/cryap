@@ -1,33 +1,13 @@
 use std::sync::Arc;
 
 use activitypub_federation::{
-    axum::{
-        inbox::{receive_activity, ActivityData},
-        json::FederationJson,
-    },
-    config::Data,
-    protocol::context::WithContext,
-    traits::Object,
+    axum::json::FederationJson, config::Data, protocol::context::WithContext, traits::Object,
 };
-use axum::{
-    extract::Path,
-    handler::Handler,
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get, post},
-    Router,
-};
-use db::{
-    models::{Post, User},
-    types::DbId,
-};
+use axum::{extract::Path, http::StatusCode, response::IntoResponse, routing::get, Router};
+use db::{models::Post, types::DbId};
 use web::{errors::AppError, AppState};
 
-use crate::{
-    activities::UserInbox,
-    middleware,
-    objects::{note::ApNote, user::ApUser},
-};
+use crate::objects::note::ApNote;
 
 pub async fn http_get_post(
     Path(id): Path<String>,

@@ -4,7 +4,6 @@ use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use ap::{objects::service_actor::ServiceActor, routers::ap};
 use api::routers::api;
 use axum::{routing::get, Router};
-use http::Method;
 use tower_http::{
     cors::{Any, CorsLayer},
     trace::TraceLayer,

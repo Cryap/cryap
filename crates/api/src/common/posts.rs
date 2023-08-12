@@ -4,7 +4,6 @@ use activitypub_federation::{
     activity_queue::send_activity,
     config::Data,
     fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
-    kinds::object,
     traits::{Actor, Object},
 };
 use anyhow::anyhow;
