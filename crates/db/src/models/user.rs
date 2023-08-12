@@ -2,6 +2,7 @@ use diesel::{dsl::sql, prelude::*, result::Error::NotFound, sql_types::Bool};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
 use crate::{
+    pagination::Pagination,
     schema::{user_follow_requests, user_followers, users},
     types::DbId,
     utils::coalesce,
@@ -140,6 +141,25 @@ impl User {
             Err(NotFound) => Ok(false),
             Err(err) => Err(err.into()),
         }
+    }
+
+    pub async fn followers(
+        &self,
+        pagination: Pagination,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Vec<Self>> {
+        let query = user_followers::table
+            .filter(user_followers::follower_id.eq(&self.id))
+            .inner_join(users::dsl::users.on(users::id.eq(user_followers::actor_id)))
+            .select(users::all_columns)
+            .into_boxed();
+        let query = match pagination {
+            Pagination::MaxId(id, limit) => query.filter(users::id.gt(id)).limit(limit.into()),
+            Pagination::MinId(id, limit) => query.filter(users::id.lt(id)).limit(limit.into()),
+            Pagination::None(limit) => query.limit(limit.into()),
+        };
+
+        Ok(query.load::<Self>(&mut db_pool.get().await?).await?)
     }
 
     pub async fn following_inboxes(

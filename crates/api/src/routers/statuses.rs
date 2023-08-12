@@ -11,7 +11,7 @@ use axum::{
     Extension, Json, Router,
 };
 use db::{
-    models::{Post, PostBoost, Session},
+    models::Session,
     types::{DbId, DbVisibility},
 };
 use serde::Deserialize;

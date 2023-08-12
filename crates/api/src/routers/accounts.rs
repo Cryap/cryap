@@ -13,6 +13,7 @@ use axum::{
 use axum_extra::extract::Query as QueryExtra;
 use db::{
     models::{Session, User},
+    pagination::PaginationQuery,
     types::DbId,
 };
 use futures::future::join_all;
@@ -67,6 +68,29 @@ pub async fn http_get_get(
     match user {
         Some(user) => Ok(Json(Account::new(user)).into_response()),
         None => Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()),
+    }
+}
+
+// https://docs.joinmastodon.org/methods/accounts/#followers
+pub async fn http_get_followers(
+    state: Data<Arc<AppState>>,
+    Path(id): Path<String>,
+    Query(pagination): Query<PaginationQuery>,
+) -> Result<impl IntoResponse, AppError> {
+    let id = DbId::from(id);
+    let user = User::by_id(&id, &state.db_pool).await?;
+
+    if let Some(user) = user {
+        Ok(Json(
+            user.followers(pagination.into(), &state.db_pool)
+                .await?
+                .into_iter()
+                .map(|follower| Account::new(follower))
+                .collect::<Vec<Account>>(),
+        )
+        .into_response())
+    } else {
+        Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
     }
 }
 
@@ -214,6 +238,7 @@ pub fn accounts(state: &Arc<AppState>) -> Router<Arc<AppState>> {
         )
         .route("/api/v1/accounts/lookup", get(http_get_lookup))
         .route("/api/v1/accounts/:id", get(http_get_get))
+        .route("/api/v1/accounts/:id/followers", get(http_get_followers))
         .route(
             "/api/v1/accounts/:id/follow",
             post(http_post_follow.layer(from_fn_with_state(Arc::clone(state), auth_middleware))),
