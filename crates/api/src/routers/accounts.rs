@@ -4,7 +4,7 @@ use activitypub_federation::config::Data;
 use axum::{
     extract::{Extension, Path, Query, State},
     handler::Handler,
-    http::StatusCode,
+    http::{header, StatusCode},
     middleware::from_fn_with_state,
     response::IntoResponse,
     routing::{get, post},
@@ -81,14 +81,26 @@ pub async fn http_get_followers(
     let user = User::by_id(&id, &state.db_pool).await?;
 
     if let Some(user) = user {
-        Ok(Json(
-            Account::build_from_vec(
-                user.followers(pagination.into(), &state.db_pool).await?,
-                &state,
-            )
-            .await?,
+        let accounts = Account::build_from_vec(
+            user.followers(pagination.into(), &state.db_pool).await?,
+            &state,
         )
-        .into_response())
+        .await?;
+
+        if accounts.is_empty() {
+            Ok(Json(accounts).into_response())
+        } else {
+            Ok((
+                [(
+                    header::LINK, format!(
+                        "<https://{}/api/v1/accounts/{}/followers?max_id={}>; rel=\"next\", <https://{}/api/v1/accounts/{}/followers?min_id={}>; rel\"prev\"",
+                        state.config.web.domain, id, accounts.last().unwrap().id.clone(),
+                        state.config.web.domain, id, accounts.first().unwrap().id.clone()
+                    )
+                )],
+                Json(accounts),
+            ).into_response())
+        }
     } else {
         Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
     }
@@ -104,14 +116,26 @@ pub async fn http_get_following(
     let user = User::by_id(&id, &state.db_pool).await?;
 
     if let Some(user) = user {
-        Ok(Json(
-            Account::build_from_vec(
-                user.following(pagination.into(), &state.db_pool).await?,
-                &state,
-            )
-            .await?,
+        let accounts = Account::build_from_vec(
+            user.following(pagination.into(), &state.db_pool).await?,
+            &state,
         )
-        .into_response())
+        .await?;
+
+        if accounts.is_empty() {
+            Ok(Json(accounts).into_response())
+        } else {
+            Ok((
+                [(
+                    header::LINK, format!(
+                        "<https://{}/api/v1/accounts/{}/followers?max_id={}>; rel=\"next\", <https://{}/api/v1/accounts/{}/followers?min_id={}>; rel\"prev\"",
+                        state.config.web.domain, id, accounts.last().unwrap().id.clone(),
+                        state.config.web.domain, id, accounts.first().unwrap().id.clone()
+                    )
+                )],
+                Json(accounts),
+            ).into_response())
+        }
     } else {
         Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
     }
