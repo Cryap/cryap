@@ -196,19 +196,29 @@ pub async fn http_post_remove_from_followers(
     }
 }
 
+// This can be done using enum, but https://github.com/nox/serde_urlencoded/issues/66
 #[derive(Deserialize)]
 pub struct RelationshipsQuery {
+    id: Option<String>,
+
     #[serde(rename = "id[]")]
-    ids: Vec<String>,
+    ids: Option<Vec<String>>,
 }
 
 // https://docs.joinmastodon.org/methods/accounts/#relationships
 pub async fn http_get_relationships(
     state: State<Arc<AppState>>,
-    QueryExtra(ids): QueryExtra<RelationshipsQuery>,
+    QueryExtra(query): QueryExtra<RelationshipsQuery>,
     Extension(session): Extension<Session>,
 ) -> Result<impl IntoResponse, AppError> {
-    let ids = ids.ids;
+    let ids = if let Some(id) = query.id {
+        vec![id]
+    } else if let Some(ids) = query.ids {
+        ids
+    } else {
+        vec![]
+    };
+
     let session_user = session.user(&state.db_pool).await?;
     Ok(Json(
         join_all(ids.into_iter().map(|id| async {
