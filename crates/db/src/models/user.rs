@@ -162,6 +162,25 @@ impl User {
         Ok(query.load::<Self>(&mut db_pool.get().await?).await?)
     }
 
+    pub async fn following(
+        &self,
+        pagination: Pagination,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Vec<Self>> {
+        let query = user_followers::table
+            .filter(user_followers::actor_id.eq(&self.id))
+            .inner_join(users::dsl::users.on(users::id.eq(user_followers::follower_id)))
+            .select(users::all_columns)
+            .into_boxed();
+        let query = match pagination {
+            Pagination::MaxId(id, limit) => query.filter(users::id.gt(id)).limit(limit.into()),
+            Pagination::MinId(id, limit) => query.filter(users::id.lt(id)).limit(limit.into()),
+            Pagination::None(limit) => query.limit(limit.into()),
+        };
+
+        Ok(query.load::<Self>(&mut db_pool.get().await?).await?)
+    }
+
     pub async fn following_inboxes(
         &self,
         db_pool: &Pool<AsyncPgConnection>,

@@ -4,6 +4,7 @@ use chrono::NaiveDateTime;
 use db::{models::User, schema::user_followers};
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
+use futures::future::join_all;
 use serde::Serialize;
 use web::AppState;
 
@@ -53,5 +54,19 @@ impl Account {
             followers_count: followers_count.try_into().unwrap(),
             following_count: following_count.try_into().unwrap(),
         })
+    }
+
+    pub async fn build_from_vec(
+        users: Vec<User>,
+        state: &Arc<AppState>,
+    ) -> anyhow::Result<Vec<Self>> {
+        join_all(
+            users
+                .into_iter()
+                .map(|user| async { Self::build(user, &state).await }),
+        )
+        .await
+        .into_iter()
+        .collect()
     }
 }
