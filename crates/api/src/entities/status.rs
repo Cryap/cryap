@@ -71,9 +71,9 @@ impl Status {
     pub async fn build(
         post: Post,
         _user: Option<User>, // TODO
-        data: &Arc<AppState>,
+        state: &Arc<AppState>,
     ) -> anyhow::Result<Self> {
-        let mut conn = data.db_pool.get().await?;
+        let mut conn = state.db_pool.get().await?;
 
         match post.visibility {
             DbVisibility::Public | DbVisibility::Unlisted => {}
@@ -103,7 +103,7 @@ impl Status {
             .await?;
 
         let in_reply = match post.in_reply.clone() {
-            Some(post_id) => Post::by_id(&post_id, &data.db_pool).await?,
+            Some(post_id) => Post::by_id(&post_id, &state.db_pool).await?,
             None => None,
         };
 
@@ -111,7 +111,7 @@ impl Status {
             id: post.id.to_string(),
             uri: post.ap_id.to_string(),
             created_at: post.published.to_string(),
-            account: Account::new(post.author(&data.db_pool).await?),
+            account: Account::build(post.author(&state.db_pool).await?, &state).await?,
             content: post.content.clone(),
             visibility: post.visibility,
             sensitive: post.sensitive,
@@ -148,17 +148,17 @@ impl Status {
     pub async fn build_from_boost(
         boost: PostBoost,
         user: Option<User>, // TODO
-        data: &Arc<AppState>,
+        state: &Arc<AppState>,
     ) -> anyhow::Result<Self> {
-        let post = boost.post(&data.db_pool).await?;
-        let status = Self::build(post, user, data).await?;
+        let post = boost.post(&state.db_pool).await?;
+        let status = Self::build(post, user, state).await?;
 
         Ok(Status {
             id: boost.id.to_string(),
             uri: boost.ap_id.to_string(),
             url: boost.ap_id.to_string(),
             created_at: boost.published.to_string(),
-            account: Account::new(boost.author(&data.db_pool).await?),
+            account: Account::build(boost.author(&state.db_pool).await?, &state).await?,
             visibility: boost.visibility,
             reblog: Some(Box::new(status.clone())),
             ..status

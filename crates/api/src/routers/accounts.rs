@@ -32,7 +32,7 @@ pub async fn http_get_verify_credentials(
     state: State<Arc<AppState>>,
     Extension(session): Extension<Session>,
 ) -> Result<impl IntoResponse, AppError> {
-    Ok(Json(Account::new(session.user(&state.db_pool).await?)).into_response())
+    Ok(Json(Account::build(session.user(&state.db_pool).await?, &state).await?).into_response())
 }
 
 #[derive(Deserialize)]
@@ -53,7 +53,7 @@ pub async fn http_get_lookup(
     };
 
     match user {
-        Some(user) => Ok(Json(Account::new(user)).into_response()),
+        Some(user) => Ok(Json(Account::build(user, &state).await?).into_response()),
         None => Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()),
     }
 }
@@ -66,7 +66,7 @@ pub async fn http_get_get(
     let id = DbId::from(id);
     let user = User::by_id(&id, &state.db_pool).await?;
     match user {
-        Some(user) => Ok(Json(Account::new(user)).into_response()),
+        Some(user) => Ok(Json(Account::build(user, &state).await?).into_response()),
         None => Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()),
     }
 }
@@ -82,11 +82,15 @@ pub async fn http_get_followers(
 
     if let Some(user) = user {
         Ok(Json(
-            user.followers(pagination.into(), &state.db_pool)
-                .await?
-                .into_iter()
-                .map(|follower| Account::new(follower))
-                .collect::<Vec<Account>>(),
+            join_all(
+                user.followers(pagination.into(), &state.db_pool)
+                    .await?
+                    .into_iter()
+                    .map(|follower| async { Account::build(follower, &state).await }),
+            )
+            .await
+            .into_iter()
+            .collect::<anyhow::Result<Vec<Account>>>()?,
         )
         .into_response())
     } else {
