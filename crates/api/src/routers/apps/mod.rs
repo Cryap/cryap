@@ -1,3 +1,5 @@
+mod oauth;
+
 use std::sync::Arc;
 
 use axum::{
@@ -58,6 +60,7 @@ pub async fn http_get_verify_credentials(
 
 pub fn apps(state: &Arc<AppState>) -> Router<Arc<AppState>> {
     Router::new()
+        .merge(oauth::oauth())
         .route("/api/v1/apps", post(http_post_create))
         .route(
             "/api/v1/apps/verify_credentials",
