@@ -1,5 +1,20 @@
 use serde::Deserialize;
 
+#[macro_export]
+macro_rules! paginate {
+    ( $query:expr, $column:path, $pagination:expr ) => { 
+        {
+        let query = $query;
+  	    match $pagination {
+            Pagination::MaxId(id, limit) => query.filter($column.gt(id)).limit(limit.into()),
+            Pagination::MinId(id, limit) => query.filter($column.lt(id)).limit(limit.into()),
+            Pagination::None(limit) => query.limit(limit.into()),
+        }
+        }
+    };
+}
+
+
 #[derive(Deserialize)]
 pub struct PaginationQuery {
     pub max_id: Option<String>,
