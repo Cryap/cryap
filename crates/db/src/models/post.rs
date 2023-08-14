@@ -84,6 +84,24 @@ impl Post {
             Err(err) => Err(err.into()),
         }
     }
+
+    pub async fn is_mentioned(
+        &self,
+        user: &User,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<bool> {
+        let result = post_mention::table
+            .select(sql::<Bool>("true"))
+            .filter(post_mention::post_id.eq(&self.id))
+            .filter(post_mention::mentioned_user_id.eq(&user.id))
+            .first::<bool>(&mut db_pool.get().await?)
+            .await;
+        match result {
+            Ok(_) => Ok(true),
+            Err(NotFound) => Ok(false),
+            Err(err) => Err(err.into()),
+        }
+    }
 }
 
 #[derive(Queryable, Insertable, AsChangeset, Selectable, Debug, PartialEq, Clone, Eq)]

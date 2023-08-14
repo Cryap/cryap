@@ -108,15 +108,15 @@ impl User {
         }
     }
 
-    pub async fn follows(
+    pub async fn follows_by_id(
         &self,
-        user: &User,
+        user_id: &DbId,
         db_pool: &Pool<AsyncPgConnection>,
     ) -> anyhow::Result<bool> {
         let result = user_followers::table
             .select(sql::<Bool>("true"))
             .filter(user_followers::actor_id.eq(&self.id))
-            .filter(user_followers::follower_id.eq(&user.id))
+            .filter(user_followers::follower_id.eq(user_id))
             .first::<bool>(&mut db_pool.get().await?)
             .await;
         match result {
@@ -124,6 +124,14 @@ impl User {
             Err(NotFound) => Ok(false),
             Err(err) => Err(err.into()),
         }
+    }
+
+    pub async fn follows(
+        &self,
+        user: &User,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<bool> {
+        self.follows_by_id(&user.id, db_pool).await
     }
 
     pub async fn wants_to_follow(

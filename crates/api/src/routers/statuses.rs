@@ -18,7 +18,7 @@ use serde::Deserialize;
 use web::{errors::AppError, AppState};
 
 use crate::{
-    auth_middleware::auth_middleware,
+    auth_middleware::{auth_middleware, optional_auth_middleware},
     common::{self, posts},
     entities::Status,
     error::ApiError,
@@ -69,16 +69,28 @@ pub async fn http_post_create(
 // https://docs.joinmastodon.org/methods/statuses/#get
 pub async fn http_get_get(
     state: State<Arc<AppState>>,
+    Extension(session): Extension<Option<Session>>,
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, AppError> {
     let id = DbId::from(id);
     let (post, boost) = posts::post_or_boost_by_id(&id, &state.db_pool).await?;
+    let user = match session {
+        Some(session) => Some(session.user(&state.db_pool).await?),
+        None => None,
+    };
+
     if let Some(post) = post {
         match boost {
             Some(boost) => {
                 Ok(Json(Status::build_from_boost(boost, None, &state).await?).into_response())
             }
-            None => Ok(Json(Status::build(post, None, &state).await?).into_response()),
+            None => {
+                if posts::accessible_for(&post, user.as_ref(), &state.db_pool).await? {
+                    Ok(Json(Status::build(post, None, &state).await?).into_response())
+                } else {
+                    Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
+                }
+            }
         }
     } else {
         Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
@@ -97,6 +109,10 @@ pub async fn http_post_favourite(
     let (post, boost) = posts::post_or_boost_by_id(&id, &state.db_pool).await?;
 
     if let Some(post) = post {
+        if boost.is_none() && !posts::accessible_for(&post, Some(&user), &state.db_pool).await? {
+            return Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response());
+        }
+
         if !post.liked_by(&user, &state.db_pool).await? {
             posts::like(&user, &post, &state).await?;
         }
@@ -124,6 +140,10 @@ pub async fn http_post_unfavourite(
     let (post, boost) = posts::post_or_boost_by_id(&id, &state.db_pool).await?;
 
     if let Some(post) = post {
+        if boost.is_none() && !posts::accessible_for(&post, Some(&user), &state.db_pool).await? {
+            return Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response());
+        }
+
         if post.liked_by(&user, &state.db_pool).await? {
             posts::unlike(&user, &post, &state).await?;
         }
@@ -154,9 +174,13 @@ pub async fn http_post_reblog(
     let id = DbId::from(id);
 
     let user = session.user(&state.db_pool).await?;
-    let (post, _) = posts::post_or_boost_by_id(&id, &state.db_pool).await?;
+    let (post, boost) = posts::post_or_boost_by_id(&id, &state.db_pool).await?;
 
     if let Some(post) = post {
+        if boost.is_none() && !posts::accessible_for(&post, Some(&user), &state.db_pool).await? {
+            return Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response());
+        }
+
         if post.visibility != DbVisibility::Public && post.visibility != DbVisibility::Unlisted {
             return Ok(
                 ApiError::new("This action is not allowed", StatusCode::FORBIDDEN).into_response(),
@@ -194,7 +218,13 @@ pub fn statuses(state: &Arc<AppState>) -> Router<Arc<AppState>> {
             "/api/v1/statuses",
             post(http_post_create.layer(from_fn_with_state(Arc::clone(state), auth_middleware))),
         )
-        .route("/api/v1/statuses/:id", get(http_get_get))
+        .route(
+            "/api/v1/statuses/:id",
+            get(http_get_get.layer(from_fn_with_state(
+                Arc::clone(state),
+                optional_auth_middleware,
+            ))),
+        )
         .route(
             "/api/v1/statuses/:id/favourite",
             post(http_post_favourite.layer(from_fn_with_state(Arc::clone(state), auth_middleware))),

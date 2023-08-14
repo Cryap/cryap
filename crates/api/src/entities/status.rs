@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::anyhow;
 use db::{
     models::{Post, PostBoost, User},
     schema::{
@@ -74,11 +73,6 @@ impl Status {
         state: &Arc<AppState>,
     ) -> anyhow::Result<Self> {
         let mut conn = state.db_pool.get().await?;
-
-        match post.visibility {
-            DbVisibility::Public | DbVisibility::Unlisted => {}
-            _ => return Err(anyhow!("Access forbidden")), // TODO: Access check
-        }
 
         let reblogs_count: i64 = post_boost
             .filter(post_boost_dsl::post_id.eq(post.id.clone()))

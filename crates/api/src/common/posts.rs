@@ -24,6 +24,26 @@ use web::AppState;
 
 use super::users::MENTION_RE;
 
+pub async fn accessible_for(
+    post: &Post,
+    user: Option<&User>,
+    db_pool: &Pool<AsyncPgConnection>,
+) -> anyhow::Result<bool> {
+    if let Some(user) = user {
+        match post.visibility {
+            DbVisibility::Public | DbVisibility::Unlisted => Ok(true),
+            DbVisibility::Private if post.is_mentioned(user, db_pool).await? => Ok(true),
+            DbVisibility::Private => Ok(user.follows_by_id(&post.author, db_pool).await?),
+            DbVisibility::Direct => Ok(post.is_mentioned(user, db_pool).await?),
+        }
+    } else {
+        match post.visibility {
+            DbVisibility::Public | DbVisibility::Unlisted => Ok(true),
+            _ => Ok(false),
+        }
+    }
+}
+
 pub async fn post_or_boost_by_id(
     id: &DbId,
     db_pool: &Pool<AsyncPgConnection>,
