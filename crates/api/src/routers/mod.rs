@@ -1,9 +1,9 @@
 pub mod accounts;
-pub mod timelines;
 pub mod apps;
 pub mod auth;
 pub mod instance;
 pub mod statuses;
+pub mod timelines;
 
 use std::sync::Arc;
 

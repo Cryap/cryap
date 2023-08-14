@@ -1,23 +1,13 @@
 use std::sync::Arc;
 
-
 use axum::{
-    extract::{State},
-    handler::Handler,
-    middleware::from_fn_with_state,
-    response::IntoResponse,
-    routing::{get},
-    Extension, Json, Router,
+    extract::State, handler::Handler, middleware::from_fn_with_state, response::IntoResponse,
+    routing::get, Extension, Json, Router,
 };
-use db::{
-    models::{Session},
-};
-
+use db::models::Session;
 use web::{errors::AppError, AppState};
 
-use crate::{
-    auth_middleware::auth_middleware,
-};
+use crate::auth_middleware::auth_middleware;
 
 // https://docs.joinmastodon.org/methods/statuses/#get
 pub async fn http_get_home(
@@ -28,9 +18,8 @@ pub async fn http_get_home(
 }
 
 pub fn timelines(state: &Arc<AppState>) -> Router<Arc<AppState>> {
-    Router::new()
-        .route(
-            "/api/v1/timelines/home",
-            get(http_get_home.layer(from_fn_with_state(Arc::clone(state), auth_middleware))),
-        )
+    Router::new().route(
+        "/api/v1/timelines/home",
+        get(http_get_home.layer(from_fn_with_state(Arc::clone(state), auth_middleware))),
+    )
 }

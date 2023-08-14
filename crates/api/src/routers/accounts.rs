@@ -32,7 +32,10 @@ pub async fn http_get_verify_credentials(
     state: State<Arc<AppState>>,
     Extension(session): Extension<Session>,
 ) -> Result<impl IntoResponse, AppError> {
-    Ok(Json(Account::build(session.user(&state.db_pool).await?, &state, true).await?).into_response())
+    Ok(
+        Json(Account::build(session.user(&state.db_pool).await?, &state, true).await?)
+            .into_response(),
+    )
 }
 
 #[derive(Deserialize)]

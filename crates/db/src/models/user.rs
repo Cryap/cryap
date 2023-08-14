@@ -1,10 +1,8 @@
 use diesel::{dsl::sql, prelude::*, result::Error::NotFound, sql_types::Bool};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
-#[macro_use]
-use crate::paginate;
-
 use crate::{
+    paginate,
     pagination::Pagination,
     schema::{user_follow_requests, user_followers, users},
     types::DbId,
@@ -171,11 +169,7 @@ impl User {
             .inner_join(users::dsl::users.on(users::id.eq(user_followers::follower_id)))
             .select(users::all_columns)
             .into_boxed();
-        let query = match pagination {
-            Pagination::MaxId(id, limit) => query.filter(users::id.gt(id)).limit(limit.into()),
-            Pagination::MinId(id, limit) => query.filter(users::id.lt(id)).limit(limit.into()),
-            Pagination::None(limit) => query.limit(limit.into()),
-        };
+        let query = paginate!(query, users::id, pagination);
 
         Ok(query.load::<Self>(&mut db_pool.get().await?).await?)
     }

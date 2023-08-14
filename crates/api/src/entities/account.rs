@@ -8,15 +8,14 @@ use futures::future::join_all;
 use serde::Serialize;
 use web::AppState;
 
-
 #[derive(Clone, Serialize, Debug)]
 pub struct AccountSource {
-  note: String,
-  fields: Vec<()>,
-  privacy: DbVisibility,
-  sensitive: bool,
-  language: String,
-  follow_requests_count: u32,
+    note: String,
+    fields: Vec<()>,
+    privacy: DbVisibility,
+    sensitive: bool,
+    language: String,
+    follow_requests_count: u32,
 }
 
 // TODO: Fully implement https://docs.joinmastodon.org/entities/Account/
@@ -41,7 +40,11 @@ pub struct Account {
 }
 
 impl Account {
-    pub async fn build(user: User, state: &Arc<AppState>, with_source: bool) -> anyhow::Result<Self> {
+    pub async fn build(
+        user: User,
+        state: &Arc<AppState>,
+        with_source: bool,
+    ) -> anyhow::Result<Self> {
         let mut conn = state.db_pool.get().await?;
 
         let followers_count: i64 = user_followers::table
@@ -80,7 +83,7 @@ impl Account {
                     language: "en".to_string(),
                     follow_requests_count: 0, // TODO
                 }),
-                false => None
+                false => None,
             },
 
             header: "https://http.cat/images/404.jpg".to_string(), // TODO: Media
