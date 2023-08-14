@@ -1,33 +1,28 @@
 use std::sync::Arc;
 
-use activitypub_federation::config::Data;
+
 use axum::{
-    extract::{Path, State},
+    extract::{State},
     handler::Handler,
-    http::StatusCode,
     middleware::from_fn_with_state,
     response::IntoResponse,
-    routing::{get, post},
+    routing::{get},
     Extension, Json, Router,
 };
 use db::{
-    models::{Post, Session},
-    types::{DbId, DbVisibility},
+    models::{Session},
 };
-use serde::Deserialize;
+
 use web::{errors::AppError, AppState};
 
 use crate::{
     auth_middleware::auth_middleware,
-    common::{self, posts},
-    entities::Status,
-    error::ApiError,
 };
 
 // https://docs.joinmastodon.org/methods/statuses/#get
 pub async fn http_get_home(
-    state: State<Arc<AppState>>,
-    Extension(session): Extension<Session>,
+    _state: State<Arc<AppState>>,
+    Extension(_session): Extension<Session>,
 ) -> Result<impl IntoResponse, AppError> {
     Ok(Json::<Vec<()>>(vec![]))
 }
