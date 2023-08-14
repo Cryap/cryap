@@ -111,7 +111,7 @@ impl Status {
             id: post.id.to_string(),
             uri: post.ap_id.to_string(),
             created_at: post.published.to_string(),
-            account: Account::build(post.author(&state.db_pool).await?, &state).await?,
+            account: Account::build(post.author(&state.db_pool).await?, &state, false).await?,
             content: post.content.clone(),
             visibility: post.visibility,
             sensitive: post.sensitive,
@@ -158,7 +158,7 @@ impl Status {
             uri: boost.ap_id.to_string(),
             url: boost.ap_id.to_string(),
             created_at: boost.published.to_string(),
-            account: Account::build(boost.author(&state.db_pool).await?, &state).await?,
+            account: Account::build(boost.author(&state.db_pool).await?, &state, false).await?,
             visibility: boost.visibility,
             reblog: Some(Box::new(status.clone())),
             ..status

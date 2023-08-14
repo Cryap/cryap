@@ -32,7 +32,7 @@ pub async fn http_get_verify_credentials(
     state: State<Arc<AppState>>,
     Extension(session): Extension<Session>,
 ) -> Result<impl IntoResponse, AppError> {
-    Ok(Json(Account::build(session.user(&state.db_pool).await?, &state).await?).into_response())
+    Ok(Json(Account::build(session.user(&state.db_pool).await?, &state, true).await?).into_response())
 }
 
 #[derive(Deserialize)]
@@ -53,7 +53,7 @@ pub async fn http_get_lookup(
     };
 
     match user {
-        Some(user) => Ok(Json(Account::build(user, &state).await?).into_response()),
+        Some(user) => Ok(Json(Account::build(user, &state, false).await?).into_response()),
         None => Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()),
     }
 }
@@ -66,7 +66,7 @@ pub async fn http_get_get(
     let id = DbId::from(id);
     let user = User::by_id(&id, &state.db_pool).await?;
     match user {
-        Some(user) => Ok(Json(Account::build(user, &state).await?).into_response()),
+        Some(user) => Ok(Json(Account::build(user, &state, false).await?).into_response()),
         None => Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()),
     }
 }
