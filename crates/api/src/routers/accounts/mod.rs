@@ -1,3 +1,5 @@
+mod favourites;
+
 use std::sync::Arc;
 
 use activitypub_federation::config::Data;
@@ -291,6 +293,7 @@ pub async fn http_get_relationships(
 
 pub fn accounts(state: &Arc<AppState>) -> Router<Arc<AppState>> {
     Router::new()
+        .merge(favourites::favourites(&state))
         .route(
             "/api/v1/accounts/verify_credentials",
             get(http_get_verify_credentials

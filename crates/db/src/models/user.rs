@@ -2,9 +2,10 @@ use diesel::{dsl::sql, prelude::*, result::Error::NotFound, sql_types::Bool};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
 use crate::{
+    models::Post,
     paginate,
     pagination::Pagination,
-    schema::{user_follow_requests, user_followers, users},
+    schema::{post_like, posts, user_follow_requests, user_followers, users},
     types::DbId,
     utils::coalesce,
 };
@@ -193,5 +194,20 @@ impl User {
             .distinct()
             .load::<String>(&mut db_pool.get().await?)
             .await?)
+    }
+
+    pub async fn liked_posts(
+        &self,
+        pagination: Pagination,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Vec<Post>> {
+        let query = post_like::table
+            .filter(post_like::actor_id.eq(&self.id))
+            .inner_join(posts::dsl::posts.on(posts::id.eq(post_like::post_id)))
+            .select(posts::all_columns)
+            .into_boxed();
+        let query = paginate!(query, posts::id, pagination);
+
+        Ok(query.load::<Post>(&mut db_pool.get().await?).await?)
     }
 }

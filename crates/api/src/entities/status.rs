@@ -12,6 +12,7 @@ use db::{
 };
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
+use futures::future::join_all;
 use serde::Serialize;
 use web::AppState;
 
@@ -69,7 +70,7 @@ pub struct Status {
 impl Status {
     pub async fn build(
         post: Post,
-        _user: Option<User>, // TODO
+        _user: Option<&User>, // TODO
         state: &Arc<AppState>,
     ) -> anyhow::Result<Self> {
         let mut conn = state.db_pool.get().await?;
@@ -141,7 +142,7 @@ impl Status {
 
     pub async fn build_from_boost(
         boost: PostBoost,
-        user: Option<User>, // TODO
+        user: Option<&User>, // TODO
         state: &Arc<AppState>,
     ) -> anyhow::Result<Self> {
         let post = boost.post(&state.db_pool).await?;
@@ -157,5 +158,20 @@ impl Status {
             reblog: Some(Box::new(status.clone())),
             ..status
         })
+    }
+
+    pub async fn build_from_vec(
+        posts: Vec<Post>,
+        user: Option<&User>,
+        state: &Arc<AppState>,
+    ) -> anyhow::Result<Vec<Self>> {
+        join_all(
+            posts
+                .into_iter()
+                .map(|post| async { Self::build(post, user, &state).await }),
+        )
+        .await
+        .into_iter()
+        .collect()
     }
 }
