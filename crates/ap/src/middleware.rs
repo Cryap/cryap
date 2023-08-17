@@ -13,7 +13,7 @@ where
         Ok(bytes) => bytes,
         Err(err) => {
             return Err(AppError::from(anyhow!("failed to read body: {}", err)));
-        }
+        },
     };
 
     if let Ok(body) = std::str::from_utf8(&bytes) {

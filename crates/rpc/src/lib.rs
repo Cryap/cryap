@@ -28,13 +28,13 @@ pub async fn process(stream: UnixStream, data: Arc<Data<Arc<AppState>>>) -> anyh
             Ok(n) if n > 0 => String::from_utf8_lossy(&msg[0..n]).to_string(),
             Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
                 continue;
-            }
+            },
             Err(e) => {
                 return Err(e.into());
-            }
+            },
             _ => {
                 continue;
-            }
+            },
         };
 
         let request = serde_json::from_str::<RpcCommandData>(&request);
@@ -43,10 +43,10 @@ pub async fn process(stream: UnixStream, data: Arc<Data<Arc<AppState>>>) -> anyh
             let response = match request {
                 RpcCommandData::UserFetch(request) => {
                     RpcCommandResponse::UserFetch(RpcUserFetch::call(request, &data).await)
-                }
+                },
                 RpcCommandData::RegisterUser(request) => {
                     RpcCommandResponse::RegisterUser(RpcRegisterUser::call(request, &data).await)
-                }
+                },
             };
 
             loop {
@@ -61,13 +61,13 @@ pub async fn process(stream: UnixStream, data: Arc<Data<Arc<AppState>>>) -> anyh
                 match stream.try_write(response.as_bytes()) {
                     Ok(_) => {
                         break;
-                    }
+                    },
                     Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
                         continue;
-                    }
+                    },
                     Err(e) => {
                         return Err(e.into());
-                    }
+                    },
                 }
             }
         } else {

@@ -20,7 +20,7 @@ impl RpcUserFetch {
             Err(err) => {
                 log::error!("Error from RPC command, {:#?}", err);
                 RpcUserFetchResponse { ok: false }
-            }
+            },
         }
     }
 }

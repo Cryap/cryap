@@ -71,7 +71,7 @@ pub fn parse_to_cc(to: &Vec<Url>, cc: &Vec<Url>, actor_followers_uri: Url) -> Db
         (_, _) if cc.contains(&public_url) => DbVisibility::Unlisted,
         (_, _) if cc.contains(&actor_followers_uri) || to.contains(&actor_followers_uri) => {
             DbVisibility::Private
-        }
+        },
         (_, _) => DbVisibility::Direct,
     }
 }
@@ -304,7 +304,7 @@ impl Object for ApNote {
                         .id
                         .clone(),
                 }),
-                _ => {}
+                _ => {},
             }
         }
 

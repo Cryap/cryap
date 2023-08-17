@@ -83,14 +83,14 @@ pub async fn http_get_get(
         match boost {
             Some(boost) => {
                 Ok(Json(Status::build_from_boost(boost, None, &state).await?).into_response())
-            }
+            },
             None => {
                 if posts::accessible_for(&post, user.as_ref(), &state.db_pool).await? {
                     Ok(Json(Status::build(post, None, &state).await?).into_response())
                 } else {
                     Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
                 }
-            }
+            },
         }
     } else {
         Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
@@ -120,7 +120,7 @@ pub async fn http_post_favourite(
         match boost {
             Some(boost) => {
                 Ok(Json(Status::build_from_boost(boost, None, &state).await?).into_response())
-            }
+            },
             None => Ok(Json(Status::build(post, None, &state).await?).into_response()),
         }
     } else {
@@ -151,7 +151,7 @@ pub async fn http_post_unfavourite(
         match boost {
             Some(boost) => {
                 Ok(Json(Status::build_from_boost(boost, None, &state).await?).into_response())
-            }
+            },
             None => Ok(Json(Status::build(post, None, &state).await?).into_response()),
         }
     } else {

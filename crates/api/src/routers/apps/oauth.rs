@@ -41,7 +41,7 @@ pub async fn http_get_oauth_authorize(
                     request.uri().query().unwrap_or("")
                 ))
                 .into_response());
-            }
+            },
         },
         None => {
             return Ok(Redirect::to(&format!(
@@ -49,7 +49,7 @@ pub async fn http_get_oauth_authorize(
                 request.uri().query().unwrap_or("")
             ))
             .into_response());
-        }
+        },
     };
 
     let application = match Application::by_client_id(&query.client_id, &state.db_pool).await? {
@@ -58,10 +58,10 @@ pub async fn http_get_oauth_authorize(
                 && application.redirect_url == query.redirect_url =>
         {
             application
-        }
+        },
         _ => {
             return Ok(StatusCode::BAD_REQUEST.into_response());
-        }
+        },
     };
 
     let user = session.user(&state.db_pool).await?;
@@ -90,18 +90,18 @@ pub async fn http_post_oauth_authorize(
             Some(session) => session,
             None => {
                 return Ok(StatusCode::UNAUTHORIZED.into_response());
-            }
+            },
         },
         None => {
             return Ok(StatusCode::UNAUTHORIZED.into_response());
-        }
+        },
     };
 
     let application = match Application::by_client_id(&body.client_id, &state.db_pool).await? {
         Some(application) if application.redirect_url == body.redirect_url => application,
         _ => {
             return Ok(StatusCode::BAD_REQUEST.into_response());
-        }
+        },
     };
 
     let redirect_code = RedirectCode::create(
@@ -143,7 +143,7 @@ pub async fn http_post_oauth_token(
         Some(application) if application.client_secret == body.client_secret => application,
         _ => {
             return Ok(ApiError::new_with_description("invalid_client", "Client authentication failed due to unknown client, no client authentication included, or unsupported authentication method.", StatusCode::UNAUTHORIZED).into_response());
-        }
+        },
     };
 
     let mut redis = state.redis.clone();
@@ -151,7 +151,7 @@ pub async fn http_post_oauth_token(
         Some(redirect_code) if application.redirect_url == body.redirect_url => redirect_code,
         _ => {
             return Ok(ApiError::new_with_description("invalid_grant", "The provided authorization grant is invalid, expired, revoked, does not match the redirection URI used in the authorization request, or was issued to another client.", StatusCode::UNAUTHORIZED).into_response());
-        }
+        },
     };
 
     let session = Session::create(
@@ -183,7 +183,7 @@ pub async fn http_post_oauth_revoke(
         Some(session) => session,
         None => {
             return Ok(Json(EmptyJsonObject {}).into_response());
-        }
+        },
     };
 
     match Application::by_client_id(&body.client_id, &state.db_pool).await? {
@@ -195,7 +195,7 @@ pub async fn http_post_oauth_revoke(
         {
             session.delete(&state.db_pool).await?;
             Ok(Json(EmptyJsonObject {}).into_response())
-        }
+        },
         _ => Ok(ApiError::new_with_description(
             "unauthorized_client",
             "You are not authorized to revoke this token",

@@ -82,7 +82,7 @@ pub async fn unfollow(by: &User, to: &User, data: &Data<Arc<AppState>>) -> anyho
                     .filter(user_follow_requests::follower_id.eq(to.id.clone()))
                     .first::<Option<String>>(&mut conn)
                     .await?
-            }
+            },
             Err(err) => return Err(err.into()),
         }
         .unwrap_or_else(|| String::new()),
@@ -154,7 +154,7 @@ pub async fn remove_from_followers(
                     .filter(user_follow_requests::follower_id.eq(by.id.clone()))
                     .first::<Option<String>>(&mut conn)
                     .await?
-            }
+            },
             Err(err) => return Err(err.into()),
         }
         .unwrap_or_else(|| String::new()),

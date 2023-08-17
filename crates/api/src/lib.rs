@@ -15,6 +15,6 @@ lazy_static! {
         Err(err) => {
             log::error!("Parsing error(s): {}", err);
             ::std::process::exit(1);
-        }
+        },
     };
 }

@@ -47,7 +47,7 @@ async fn main() -> anyhow::Result<()> {
                 public_key: data.pubkey,
                 private_key: data.privkey,
             }
-        }
+        },
         Err(_) => {
             let keypair = generate_actor_keypair()?;
             let keypair_ = keypair.clone();
@@ -59,7 +59,7 @@ async fn main() -> anyhow::Result<()> {
                 })?,
             )?;
             keypair
-        }
+        },
     };
 
     let config = match config::process_config() {
@@ -67,7 +67,7 @@ async fn main() -> anyhow::Result<()> {
         Err(err) => {
             log::error!("Can't parse config.toml :(");
             return Err(err);
-        }
+        },
     };
 
     let db_config =
@@ -119,7 +119,7 @@ async fn main() -> anyhow::Result<()> {
                 .serve(app.into_make_service())
                 .await
                 .unwrap()
-        }
+        },
     };
 
     Ok(())

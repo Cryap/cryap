@@ -117,11 +117,11 @@ pub async fn http_get_oauth_authorize_native(
             Some(session) => session,
             None => {
                 return Ok(Redirect::to("/auth/sign_in").into_response());
-            }
+            },
         },
         None => {
             return Ok(Redirect::to("/auth/sign_in").into_response());
-        }
+        },
     };
 
     let user = session.user(&state.db_pool).await?;
