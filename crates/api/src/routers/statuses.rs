@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use activitypub_federation::config::Data;
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     handler::Handler,
-    http::StatusCode,
+    http::{header, StatusCode},
     middleware::from_fn_with_state,
     response::IntoResponse,
     routing::{get, post},
@@ -12,6 +12,7 @@ use axum::{
 };
 use db::{
     models::{Post, Session},
+    pagination::PaginationQuery,
     types::{DbId, DbVisibility},
 };
 use serde::Deserialize;
@@ -20,7 +21,7 @@ use web::{errors::AppError, AppState};
 use crate::{
     auth_middleware::{auth_middleware, optional_auth_middleware},
     common::{self, posts},
-    entities::Status,
+    entities::{Account, Status},
     error::ApiError,
 };
 
@@ -97,6 +98,94 @@ pub async fn http_get_get(
     }
 }
 
+// https://docs.joinmastodon.org/methods/statuses/#favourited_by
+pub async fn http_get_favourited_by(
+    state: Data<Arc<AppState>>,
+    Extension(session): Extension<Option<Session>>,
+    Path(id): Path<String>,
+    Query(pagination): Query<PaginationQuery>,
+) -> Result<impl IntoResponse, AppError> {
+    let id = DbId::from(id);
+    let (post, boost) = posts::post_or_boost_by_id(&id, &state.db_pool).await?;
+    let user = match session {
+        Some(session) => Some(session.user(&state.db_pool).await?),
+        None => None,
+    };
+
+    if let Some(post) = post {
+        if boost.is_none() && !posts::accessible_for(&post, user.as_ref(), &state.db_pool).await? {
+            return Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response());
+        }
+
+        let accounts = Account::build_from_vec(
+            post.liked_by(pagination.into(), &state.db_pool).await?,
+            &state,
+        )
+        .await?;
+
+        if accounts.is_empty() {
+            Ok(Json(accounts).into_response())
+        } else {
+            Ok((
+                [(
+                    header::LINK, format!(
+                        "<https://{}/api/v1/statuses/{}/favourited_by?max_id={}>; rel=\"next\", <https://{}/api/v1/statuses/{}/favourited_by?min_id={}>; rel\"prev\"",
+                        state.config.web.domain, id, accounts.last().unwrap().id.clone(),
+                        state.config.web.domain, id, accounts.first().unwrap().id.clone()
+                    )
+                )],
+                Json(accounts),
+            ).into_response())
+        }
+    } else {
+        Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
+    }
+}
+
+// https://docs.joinmastodon.org/methods/statuses/#reblogged_by
+pub async fn http_get_reblogged_by(
+    state: Data<Arc<AppState>>,
+    Extension(session): Extension<Option<Session>>,
+    Path(id): Path<String>,
+    Query(pagination): Query<PaginationQuery>,
+) -> Result<impl IntoResponse, AppError> {
+    let id = DbId::from(id);
+    let (post, boost) = posts::post_or_boost_by_id(&id, &state.db_pool).await?;
+    let user = match session {
+        Some(session) => Some(session.user(&state.db_pool).await?),
+        None => None,
+    };
+
+    if let Some(post) = post {
+        if boost.is_none() && !posts::accessible_for(&post, user.as_ref(), &state.db_pool).await? {
+            return Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response());
+        }
+
+        let accounts = Account::build_from_vec(
+            post.boosted_by(pagination.into(), &state.db_pool).await?,
+            &state,
+        )
+        .await?;
+
+        if accounts.is_empty() {
+            Ok(Json(accounts).into_response())
+        } else {
+            Ok((
+                [(
+                    header::LINK, format!(
+                        "<https://{}/api/v1/statuses/{}/reblogged_by?max_id={}>; rel=\"next\", <https://{}/api/v1/statuses/{}/reblogged_by?min_id={}>; rel\"prev\"",
+                        state.config.web.domain, id, accounts.last().unwrap().id.clone(),
+                        state.config.web.domain, id, accounts.first().unwrap().id.clone()
+                    )
+                )],
+                Json(accounts),
+            ).into_response())
+        }
+    } else {
+        Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
+    }
+}
+
 // https://docs.joinmastodon.org/methods/statuses/#favourite
 pub async fn http_post_favourite(
     state: Data<Arc<AppState>>,
@@ -113,7 +202,7 @@ pub async fn http_post_favourite(
             return Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response());
         }
 
-        if !post.liked_by(&user, &state.db_pool).await? {
+        if !post.is_liked_by(&user, &state.db_pool).await? {
             posts::like(&user, &post, &state).await?;
         }
 
@@ -144,7 +233,7 @@ pub async fn http_post_unfavourite(
             return Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response());
         }
 
-        if post.liked_by(&user, &state.db_pool).await? {
+        if post.is_liked_by(&user, &state.db_pool).await? {
             posts::unlike(&user, &post, &state).await?;
         }
 
@@ -221,6 +310,20 @@ pub fn statuses(state: &Arc<AppState>) -> Router<Arc<AppState>> {
         .route(
             "/api/v1/statuses/:id",
             get(http_get_get.layer(from_fn_with_state(
+                Arc::clone(state),
+                optional_auth_middleware,
+            ))),
+        )
+        .route(
+            "/api/v1/statuses/:id/favourited_by",
+            get(http_get_favourited_by.layer(from_fn_with_state(
+                Arc::clone(state),
+                optional_auth_middleware,
+            ))),
+        )
+        .route(
+            "/api/v1/statuses/:id/reblogged_by",
+            get(http_get_reblogged_by.layer(from_fn_with_state(
                 Arc::clone(state),
                 optional_auth_middleware,
             ))),

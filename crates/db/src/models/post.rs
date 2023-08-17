@@ -4,7 +4,9 @@ use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQuer
 
 use crate::{
     models::{PostBoost, User},
-    schema::{post_boost, post_like, post_mention, posts},
+    paginate,
+    pagination::Pagination,
+    schema::{post_boost, post_like, post_mention, posts, users},
     types::{DbId, DbVisibility},
 };
 
@@ -51,6 +53,36 @@ impl Post {
     }
 
     pub async fn liked_by(
+        &self,
+        pagination: Pagination,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Vec<User>> {
+        let query = post_like::table
+            .filter(post_like::post_id.eq(&self.id))
+            .inner_join(users::dsl::users.on(users::id.eq(post_like::actor_id)))
+            .select(users::all_columns)
+            .into_boxed();
+        let query = paginate!(query, users::id, pagination);
+
+        Ok(query.load::<User>(&mut db_pool.get().await?).await?)
+    }
+
+    pub async fn boosted_by(
+        &self,
+        pagination: Pagination,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Vec<User>> {
+        let query = post_boost::table
+            .filter(post_boost::post_id.eq(&self.id))
+            .inner_join(users::dsl::users.on(users::id.eq(post_boost::actor_id)))
+            .select(users::all_columns)
+            .into_boxed();
+        let query = paginate!(query, users::id, pagination);
+
+        Ok(query.load::<User>(&mut db_pool.get().await?).await?)
+    }
+
+    pub async fn is_liked_by(
         &self,
         user: &User,
         db_pool: &Pool<AsyncPgConnection>,
