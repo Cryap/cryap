@@ -10,12 +10,12 @@ use axum::{
 };
 use axum_extra::extract::cookie::CookieJar;
 use db::models::{Application, RedirectCode, Session};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use tera::Context;
 use url::Url;
 use web::{errors::AppError, AppState};
 
-use crate::{entities::Token, error::ApiError, TEMPLATES};
+use crate::{entities::Token, error::ApiError, EmptyJsonObject, TEMPLATES};
 
 #[derive(Deserialize)]
 pub struct AuthorizeQuery {
@@ -171,9 +171,6 @@ pub struct RevokeBody {
     client_secret: String,
 }
 
-#[derive(Serialize)]
-struct EmptyJsonObject {}
-
 // https://docs.joinmastodon.org/methods/oauth/#revoke
 pub async fn http_post_oauth_revoke(
     state: State<Arc<AppState>>,
@@ -182,7 +179,7 @@ pub async fn http_post_oauth_revoke(
     let session = match Session::by_token(&body.token, &state.db_pool).await? {
         Some(session) => session,
         None => {
-            return Ok(Json(EmptyJsonObject {}).into_response());
+            return Ok(EmptyJsonObject::response());
         },
     };
 
@@ -194,7 +191,7 @@ pub async fn http_post_oauth_revoke(
                 ) =>
         {
             session.delete(&state.db_pool).await?;
-            Ok(Json(EmptyJsonObject {}).into_response())
+            Ok(EmptyJsonObject::response())
         },
         _ => Ok(ApiError::new_with_description(
             "unauthorized_client",

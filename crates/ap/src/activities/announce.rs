@@ -9,7 +9,7 @@ use url::Url;
 use web::AppState;
 
 pub use crate::objects::announce::Announce;
-use crate::objects::announce::ApAnnounce;
+use crate::{common::notifications, objects::announce::ApAnnounce};
 
 #[async_trait]
 impl ActivityHandler for Announce {
@@ -29,7 +29,10 @@ impl ActivityHandler for Announce {
     }
 
     async fn receive(self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
+        let actor = self.actor.dereference(data).await?;
+        let post = self.object.dereference(data).await?;
         ApAnnounce::from_json(self, data).await?;
+        notifications::process_boost(&post, &actor, false, &data.db_pool).await?;
 
         Ok(())
     }

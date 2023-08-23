@@ -9,6 +9,7 @@ use activitypub_federation::{
 use anyhow::anyhow;
 use ap::{
     activities::{create::note::CreateNote, like::Like, undo::like::UndoLike},
+    common::notifications,
     objects::{announce::ApAnnounce, note::ApNote, user::ApUser},
 };
 use chrono::Utc;
@@ -178,6 +179,8 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
         .execute(&mut conn)
         .await?;
 
+    notifications::process_post(&object, &data.db_pool).await?;
+
     Ok(object)
 }
 
@@ -229,6 +232,8 @@ pub async fn boost(
         .get_result::<PostBoost>(&mut conn)
         .await?;
 
+    notifications::process_boost(post, user, false, &data.db_pool).await?;
+
     Ok(object_db)
 }
 
@@ -259,6 +264,8 @@ pub async fn like(user: &User, post: &Post, data: &Data<Arc<AppState>>) -> anyho
         .do_nothing()
         .execute(&mut conn)
         .await?;
+
+    notifications::process_like(&post, &user, false, &data.db_pool).await?;
 
     Ok(())
 }
@@ -299,6 +306,8 @@ pub async fn unlike(user: &User, post: &Post, data: &Data<Arc<AppState>>) -> any
     )
     .execute(&mut conn)
     .await;
+
+    notifications::process_like(&post, &user, true, &data.db_pool).await?;
 
     Ok(())
 }

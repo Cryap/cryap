@@ -134,6 +134,19 @@ impl Post {
             Err(err) => Err(err.into()),
         }
     }
+
+    pub async fn local_mentioned_users(
+        &self,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Vec<User>> {
+        Ok(post_mention::table
+            .filter(post_mention::post_id.eq(&self.id))
+            .inner_join(users::dsl::users.on(users::id.eq(post_mention::mentioned_user_id)))
+            .filter(users::local.eq(true))
+            .select(users::all_columns)
+            .load::<User>(&mut db_pool.get().await?)
+            .await?)
+    }
 }
 
 #[derive(Queryable, Insertable, AsChangeset, Selectable, Debug, PartialEq, Clone, Eq)]

@@ -34,7 +34,7 @@ impl From<svix_ksuid::Ksuid> for DbId {
 #[derive(
     diesel_derive_enum::DbEnum, Debug, Clone, PartialEq, PartialOrd, Ord, Eq, Serialize, Deserialize,
 )]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 #[ExistingTypePath = "crate::schema::sql_types::Visibility"]
 pub enum DbVisibility {
     Public,
@@ -50,6 +50,34 @@ impl DbVisibility {
             "unlisted" => Some(Self::Unlisted),
             "private" => Some(Self::Private),
             "direct" => Some(Self::Direct),
+            _ => None,
+        }
+    }
+}
+
+#[derive(
+    diesel_derive_enum::DbEnum, Debug, Clone, PartialEq, PartialOrd, Ord, Eq, Serialize, Deserialize,
+)]
+#[serde(rename_all = "snake_case")]
+#[ExistingTypePath = "crate::schema::sql_types::NotificationType"]
+pub enum DbNotificationType {
+    Mention,
+    Reblog,
+    Follow,
+    FollowRequest,
+    Favourite,
+    Quote,
+}
+
+impl DbNotificationType {
+    pub fn from_string(string: &str) -> Option<Self> {
+        match string {
+            "mention" => Some(Self::Mention),
+            "reblog" => Some(Self::Reblog),
+            "follow" => Some(Self::Follow),
+            "follow_request" => Some(Self::FollowRequest),
+            "favourite" => Some(Self::Favourite),
+            "quote" => Some(Self::Quote),
             _ => None,
         }
     }

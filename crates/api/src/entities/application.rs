@@ -1,4 +1,4 @@
-use db::models::Application as ApplicationModel;
+use db::models::Application as DbApplication;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
@@ -16,7 +16,7 @@ pub struct Application {
 }
 
 impl Application {
-    pub fn new(application: ApplicationModel, show_secrets: bool) -> Self {
+    pub fn new(application: DbApplication, show_secrets: bool) -> Self {
         if show_secrets {
             Self {
                 id: application.id.to_string(),

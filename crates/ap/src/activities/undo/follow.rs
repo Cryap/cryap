@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 use web::AppState;
 
-use crate::{activities::follow::Follow, objects::user::ApUser};
+use crate::{activities::follow::Follow, common::notifications, objects::user::ApUser};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -71,6 +71,9 @@ impl ActivityHandler for UndoFollow {
         )
         .execute(&mut conn)
         .await;
+
+        notifications::process_follow(&actor, &followed, true, &data.db_pool).await?;
+        notifications::process_follow_request(&actor, &followed, true, &data.db_pool).await?;
 
         Ok(())
     }

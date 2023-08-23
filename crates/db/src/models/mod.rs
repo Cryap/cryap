@@ -1,4 +1,5 @@
 pub mod application;
+pub mod notification;
 pub mod post;
 pub mod post_boost;
 pub mod post_like;
@@ -9,6 +10,7 @@ pub mod user_follow_requests;
 pub mod user_followers;
 
 pub use application::Application;
+pub use notification::Notification;
 pub use post::{Post, PostMention};
 pub use post_boost::PostBoost;
 pub use post_like::PostLike;

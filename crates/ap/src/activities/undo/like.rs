@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 use web::AppState;
 
-use crate::{activities::like::Like, objects::user::ApUser};
+use crate::{activities::like::Like, common::notifications, objects::user::ApUser};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -59,6 +59,8 @@ impl ActivityHandler for UndoLike {
         )
         .execute(&mut conn)
         .await;
+
+        notifications::process_like(&post, &actor, true, &data.db_pool).await?;
 
         Ok(())
     }

@@ -14,7 +14,10 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 use web::AppState;
 
-use crate::objects::{note::ApNote, user::ApUser};
+use crate::{
+    common::notifications,
+    objects::{note::ApNote, user::ApUser},
+};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -59,6 +62,8 @@ impl ActivityHandler for Like {
             .do_nothing()
             .execute(&mut conn)
             .await?;
+
+        notifications::process_like(&post, &actor, false, &data.db_pool).await?;
 
         Ok(())
     }

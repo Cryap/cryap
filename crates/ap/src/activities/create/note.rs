@@ -11,9 +11,12 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 use web::AppState;
 
-use crate::objects::{
-    note::{ApNote, Note},
-    user::ApUser,
+use crate::{
+    common::notifications,
+    objects::{
+        note::{ApNote, Note},
+        user::ApUser,
+    },
 };
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -64,7 +67,8 @@ impl ActivityHandler for CreateNote {
     }
 
     async fn receive(self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
-        ApNote::from_json(self.object, data).await?;
+        let note = ApNote::from_json(self.object, data).await?;
+        notifications::process_post(&note, &data.db_pool).await?;
 
         Ok(())
     }

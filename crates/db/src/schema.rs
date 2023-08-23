@@ -2,6 +2,10 @@
 
 pub mod sql_types {
     #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "notification_type"))]
+    pub struct NotificationType;
+
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "visibility"))]
     pub struct Visibility;
 }
@@ -20,6 +24,24 @@ diesel::table! {
         client_id -> Bpchar,
         #[max_length = 32]
         client_secret -> Bpchar,
+        published -> Timestamp,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::NotificationType;
+
+    notifications (id) {
+        #[max_length = 27]
+        id -> Bpchar,
+        #[max_length = 27]
+        actor_id -> Bpchar,
+        #[max_length = 27]
+        receiver_id -> Bpchar,
+        #[max_length = 27]
+        post_id -> Nullable<Bpchar>,
+        notification_type -> NotificationType,
         published -> Timestamp,
     }
 }
@@ -161,6 +183,7 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(notifications -> posts (post_id));
 diesel::joinable!(post_boost -> posts (post_id));
 diesel::joinable!(post_boost -> users (actor_id));
 diesel::joinable!(post_like -> posts (post_id));
@@ -173,6 +196,7 @@ diesel::joinable!(sessions -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     applications,
+    notifications,
     post_boost,
     post_like,
     post_mention,

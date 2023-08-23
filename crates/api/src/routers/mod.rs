@@ -1,6 +1,7 @@
 pub mod accounts;
 pub mod apps;
 pub mod instance;
+pub mod notifications;
 pub mod statuses;
 pub mod timelines;
 pub mod ui;
@@ -14,8 +15,9 @@ pub fn api(state: Arc<AppState>) -> Router<Arc<AppState>> {
     Router::new()
         .merge(accounts::accounts(&state))
         .merge(apps::apps(&state))
-        .merge(ui::ui())
         .merge(instance::instance())
+        .merge(notifications::notifications(&state))
         .merge(statuses::statuses(&state))
         .merge(timelines::timelines(&state))
+        .merge(ui::ui())
 }
