@@ -286,14 +286,14 @@ pub async fn http_get_relationships(
         }))
         .await
         .into_iter()
-        .filter_map(|relationship| relationship)
+        .flatten()
         .collect::<Vec<Relationship>>(),
     ))
 }
 
 pub fn accounts(state: &Arc<AppState>) -> Router<Arc<AppState>> {
     Router::new()
-        .merge(favourites::favourites(&state))
+        .merge(favourites::favourites(state))
         .route(
             "/api/v1/accounts/verify_credentials",
             get(http_get_verify_credentials

@@ -26,17 +26,17 @@ pub enum Pagination {
     None(i32),
 }
 
-impl Into<Pagination> for PaginationQuery {
-    fn into(self) -> Pagination {
-        let limit = match self.limit {
+impl From<PaginationQuery> for Pagination {
+    fn from(value: PaginationQuery) -> Self {
+        let limit = match value.limit {
             None => 20,
             Some(limit) if limit < 40 => limit,
             _ => 40,
         };
 
-        if let Some(max_id) = self.max_id {
+        if let Some(max_id) = value.max_id {
             Pagination::MaxId(max_id, limit)
-        } else if let Some(min_id) = self.min_id.or(self.since_id) {
+        } else if let Some(min_id) = value.min_id.or(value.since_id) {
             // In fact, min_id and since_id in Mastodon mean the same thing
             Pagination::MinId(min_id, limit)
         } else {

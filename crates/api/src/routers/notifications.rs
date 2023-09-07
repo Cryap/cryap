@@ -50,8 +50,7 @@ pub async fn http_get_get(
                     query
                         .types
                         .into_iter()
-                        .map(|string| DbNotificationType::from_string(&string))
-                        .filter_map(|notification_type| notification_type)
+                        .filter_map(|string| DbNotificationType::from_string(&string))
                         .collect(),
                 )
             },
@@ -62,8 +61,7 @@ pub async fn http_get_get(
                     query
                         .exclude_types
                         .into_iter()
-                        .map(|string| DbNotificationType::from_string(&string))
-                        .filter_map(|notification_type| notification_type)
+                        .filter_map(|string| DbNotificationType::from_string(&string))
                         .collect(),
                 )
             },

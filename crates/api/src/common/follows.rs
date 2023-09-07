@@ -40,7 +40,7 @@ pub async fn want_to_follow(
     let to = ApUser(to.clone());
 
     let inboxes = vec![to.shared_inbox_or_inbox()];
-    send_activity(activity, &by, inboxes, &data).await?;
+    send_activity(activity, &by, inboxes, data).await?;
 
     insert_into(user_follow_requests::dsl::user_follow_requests)
         .values(vec![UserFollowRequestsInsert {
@@ -85,7 +85,7 @@ pub async fn unfollow(by: &User, to: &User, data: &Data<Arc<AppState>>) -> anyho
             },
             Err(err) => return Err(err.into()),
         }
-        .unwrap_or_else(|| String::new()),
+        .unwrap_or_default(),
     )?;
 
     let activity = UndoFollow {
@@ -106,7 +106,7 @@ pub async fn unfollow(by: &User, to: &User, data: &Data<Arc<AppState>>) -> anyho
     let to = ApUser(to.clone());
 
     let inboxes = vec![to.shared_inbox_or_inbox()];
-    send_activity(activity, &by, inboxes, &data).await?;
+    send_activity(activity, &by, inboxes, data).await?;
 
     let _ = delete(
         user_follow_requests::dsl::user_follow_requests
@@ -157,7 +157,7 @@ pub async fn remove_from_followers(
             },
             Err(err) => return Err(err.into()),
         }
-        .unwrap_or_else(|| String::new()),
+        .unwrap_or_default(),
     )?;
 
     let activity = RejectFollow {
@@ -178,7 +178,7 @@ pub async fn remove_from_followers(
     let to = ApUser(to.clone());
 
     let inboxes = vec![to.shared_inbox_or_inbox()];
-    send_activity(activity, &by, inboxes, &data).await?;
+    send_activity(activity, &by, inboxes, data).await?;
 
     let _ = delete(
         user_follow_requests::dsl::user_follow_requests

@@ -54,14 +54,14 @@ impl Notification {
         notification_type: DbNotificationType,
         db_pool: &Pool<AsyncPgConnection>,
     ) -> anyhow::Result<Self> {
-        Ok(Self::create_by_ids(
+        Self::create_by_ids(
             actor.id.clone(),
             receiver.id.clone(),
             post.map(|post| post.id.clone()),
             notification_type,
             db_pool,
         )
-        .await?)
+        .await
     }
 
     pub async fn delete_by_ids(
@@ -103,14 +103,14 @@ impl Notification {
         notification_type: DbNotificationType,
         db_pool: &Pool<AsyncPgConnection>,
     ) -> anyhow::Result<()> {
-        Ok(Self::delete_by_ids(
+        Self::delete_by_ids(
             &actor.id,
             &receiver.id,
             post.map(|post| &post.id),
             notification_type,
             db_pool,
         )
-        .await?)
+        .await
     }
 
     pub async fn by_id(

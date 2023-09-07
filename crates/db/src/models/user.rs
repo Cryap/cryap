@@ -86,12 +86,7 @@ impl User {
         acct: String,
         db_pool: &Pool<AsyncPgConnection>,
     ) -> anyhow::Result<Option<Self>> {
-        let acct = if acct.starts_with('@') {
-            &acct[1..]
-        } else {
-            &acct
-        };
-
+        let acct = acct.strip_prefix('@').unwrap_or(&acct);
         let acct_parts = acct.split('@').collect::<Vec<&str>>();
         if acct_parts.len() < 2 {
             return Ok(None);

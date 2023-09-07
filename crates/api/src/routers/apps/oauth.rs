@@ -121,7 +121,7 @@ pub async fn http_post_oauth_authorize(
         let mut url = Url::parse(&body.redirect_url)?;
         url.query_pairs_mut()
             .append_pair("code", &redirect_code.code);
-        Ok(Redirect::to(&url.to_string()).into_response())
+        Ok(Redirect::to(url.as_ref()).into_response())
     }
 }
 

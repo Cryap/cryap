@@ -49,12 +49,12 @@ pub async fn post_or_boost_by_id(
     id: &DbId,
     db_pool: &Pool<AsyncPgConnection>,
 ) -> anyhow::Result<(Option<Post>, Option<PostBoost>)> {
-    let post = Post::by_id(&id, db_pool).await?;
+    let post = Post::by_id(id, db_pool).await?;
     if let Some(post) = post {
         return Ok((Some(post), None));
     }
 
-    let boost = PostBoost::by_id(&id, db_pool).await?;
+    let boost = PostBoost::by_id(id, db_pool).await?;
     if let Some(boost) = boost {
         return Ok((Some(boost.post(db_pool).await?), Some(boost)));
     }
@@ -73,20 +73,14 @@ pub struct NewPost {
 }
 
 fn match_mentions(content: String) -> Vec<String> {
-    let mut mentions = vec![];
-
-    let re = regex::Regex::new(MENTION_RE).unwrap();
-
-    for mention in re.captures_iter(&content).map(|m| {
-        m.get(0)
-            .map(|m| m.as_str().to_string().trim()[1..].to_string()) // strip @ symbol
-    }) {
-        if let Some(mention) = mention {
-            mentions.push(mention);
-        }
-    }
-
-    mentions
+    regex::Regex::new(MENTION_RE)
+        .unwrap()
+        .captures_iter(&content)
+        .filter_map(|m| {
+            m.get(0)
+                .map(|m| m.as_str().to_string().trim()[1..].to_string()) // strip @ symbol
+        })
+        .collect()
 }
 
 pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> anyhow::Result<Post> {
@@ -103,7 +97,7 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
     let mut mentions: Vec<ApUser> = vec![];
 
     for mention in match_mentions(content.clone()) {
-        let user = if mention.contains("@") {
+        let user = if mention.contains('@') {
             webfinger_resolve_actor(&mention, data).await?
         } else {
             let user = User::by_name(&mention, &data.db_pool).await?;
@@ -159,7 +153,7 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
                 .into_iter()
                 .map(|inbox| Url::parse(&inbox))
                 .collect::<Result<Vec<Url>, url::ParseError>>()?,
-            &data,
+            data,
         )
         .await?;
     }
@@ -220,7 +214,7 @@ pub async fn boost(
                 .into_iter()
                 .map(|inbox| Url::parse(&inbox))
                 .collect::<Result<Vec<Url>, url::ParseError>>()?,
-            &data,
+            data,
         )
         .await?;
     }
@@ -252,7 +246,7 @@ pub async fn like(user: &User, post: &Post, data: &Data<Arc<AppState>>) -> anyho
     };
 
     let inboxes = vec![ApUser(post.author(&data.db_pool).await?).shared_inbox_or_inbox()];
-    send_activity(activity, &ApUser(user.clone()), inboxes, &data).await?;
+    send_activity(activity, &ApUser(user.clone()), inboxes, data).await?;
 
     insert_into(post_like::dsl::post_like)
         .values(vec![PostLike {
@@ -265,7 +259,7 @@ pub async fn like(user: &User, post: &Post, data: &Data<Arc<AppState>>) -> anyho
         .execute(&mut conn)
         .await?;
 
-    notifications::process_like(&post, &user, false, &data.db_pool).await?;
+    notifications::process_like(post, user, false, &data.db_pool).await?;
 
     Ok(())
 }
@@ -297,7 +291,7 @@ pub async fn unlike(user: &User, post: &Post, data: &Data<Arc<AppState>>) -> any
     };
 
     let inboxes = vec![ApUser(post.author(&data.db_pool).await?).shared_inbox_or_inbox()];
-    send_activity(activity, &ApUser(user.clone()), inboxes, &data).await?;
+    send_activity(activity, &ApUser(user.clone()), inboxes, data).await?;
 
     let _ = delete(
         post_like::table
@@ -307,7 +301,7 @@ pub async fn unlike(user: &User, post: &Post, data: &Data<Arc<AppState>>) -> any
     .execute(&mut conn)
     .await;
 
-    notifications::process_like(&post, &user, true, &data.db_pool).await?;
+    notifications::process_like(post, user, true, &data.db_pool).await?;
 
     Ok(())
 }

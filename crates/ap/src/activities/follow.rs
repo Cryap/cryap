@@ -43,7 +43,7 @@ impl Follow {
         let id = Url::parse(&format!(
             "{}/activities/follows/{}",
             by.ap_id,
-            id.unwrap_or_else(|| DbId::default())
+            id.unwrap_or_default()
         ))
         .unwrap(); // TODO: Review
         Follow {
@@ -120,7 +120,7 @@ impl ActivityHandler for Follow {
             };
 
             let inboxes = vec![actor.shared_inbox_or_inbox()];
-            send_activity(activity, &followed, inboxes, &data).await?;
+            send_activity(activity, &followed, inboxes, data).await?;
 
             notifications::process_follow(&actor, &followed, false, &data.db_pool).await?;
         }

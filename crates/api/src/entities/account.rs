@@ -100,7 +100,7 @@ impl Account {
         join_all(
             users
                 .into_iter()
-                .map(|user| async { Self::build(user, &state, false).await }),
+                .map(|user| async { Self::build(user, state, false).await }),
         )
         .await
         .into_iter()

@@ -178,9 +178,8 @@ impl Actor for ApUser {
     }
 
     fn shared_inbox(&self) -> Option<Url> {
-        match &self.shared_inbox_uri {
-            Some(shared_inbox_uri) => Some(Url::parse(shared_inbox_uri).unwrap()), // should never panic in theory
-            None => None,
-        }
+        self.shared_inbox_uri
+            .as_ref()
+            .map(|shared_inbox_uri| Url::parse(shared_inbox_uri).unwrap()) // should never panic in theory
     }
 }

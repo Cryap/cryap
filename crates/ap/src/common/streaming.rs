@@ -141,6 +141,12 @@ impl StreamingEventBus {
     }
 }
 
+impl Default for StreamingEventBus {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct StreamingReceiverGuard {
     account_id: DbId,
     receiver: broadcast::Receiver<StreamingEvent>,

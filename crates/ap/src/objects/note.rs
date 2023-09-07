@@ -294,8 +294,8 @@ impl Object for ApNote {
         let mut mentions: Vec<PostMention> = vec![];
 
         for tag in &json.tag {
-            match tag {
-                NoteTags::Mention(mention) => mentions.push(PostMention {
+            if let NoteTags::Mention(mention) = tag {
+                mentions.push(PostMention {
                     id: DbId::default(),
                     post_id: post_db.id.clone(),
                     mentioned_user_id: ObjectId::<ApUser>::from(mention.href.clone())
@@ -303,8 +303,7 @@ impl Object for ApNote {
                         .await?
                         .id
                         .clone(),
-                }),
-                _ => {},
+                })
             }
         }
 

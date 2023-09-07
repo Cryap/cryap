@@ -127,7 +127,7 @@ async fn handle_websocket(
     let (sender, mut receiver) = mpsc::channel::<Message>(16);
     let mut send_task = tokio::spawn(async move {
         while let Some(message) = receiver.recv().await {
-            if split_sink.send(message.into()).await.is_err() {
+            if split_sink.send(message).await.is_err() {
                 return;
             }
         }
@@ -144,14 +144,14 @@ async fn handle_websocket(
                     categories,
                 } if categories
                     .iter()
-                    .any(|category| socket_categories.contains(&category)) =>
+                    .any(|category| socket_categories.contains(category)) =>
                 {
                     if stream_task_sender
                         .send(Message::Text(
                             serde_json::to_string(&WebSocketEvent {
                                 stream: categories
                                     .into_iter()
-                                    .filter(|category| socket_categories.contains(&category))
+                                    .filter(|category| socket_categories.contains(category))
                                     .map(|category| category.name())
                                     .collect(),
                                 event: String::from("notification"),
@@ -199,19 +199,17 @@ async fn handle_websocket(
                                     _ => false, // Crutch: insert and remove return bool type so this is necessary for this line to meet the requirement.
                                                 // Match return value is then ignored
                                 };
-                            } else {
-                                if receive_task_sender
-                                    .send(Message::Text(
-                                        serde_json::to_string(&ApiError::new_without_status_code(
-                                            "Unknown stream type",
-                                        ))
-                                        .unwrap(), // Panic safety: hardcoded object
+                            } else if receive_task_sender
+                                .send(Message::Text(
+                                    serde_json::to_string(&ApiError::new_without_status_code(
+                                        "Unknown stream type",
                                     ))
-                                    .await
-                                    .is_err()
-                                {
-                                    return;
-                                }
+                                    .unwrap(), // Panic safety: hardcoded object
+                                ))
+                                .await
+                                .is_err()
+                            {
+                                return;
                             }
                         }
                     }

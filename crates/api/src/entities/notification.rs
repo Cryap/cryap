@@ -51,7 +51,7 @@ impl Notification {
         join_all(
             notifications
                 .into_iter()
-                .map(|notification| async { Self::build(notification, &state).await }),
+                .map(|notification| async { Self::build(notification, state).await }),
         )
         .await
         .into_iter()

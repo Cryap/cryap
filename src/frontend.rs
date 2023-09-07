@@ -15,7 +15,6 @@ use activitypub_federation::config::Data;
 use axum::{body::Body, http::Request};
 use web::AppState;
 
-#[axum::debug_handler]
 pub async fn ssr_handler(state: Data<Arc<AppState>>, req: Request<Body>) -> impl IntoResponse {
     let html = state
         .local_pool
@@ -24,7 +23,7 @@ pub async fn ssr_handler(state: Data<Arc<AppState>>, req: Request<Body>) -> impl
         .unwrap();
 
     let template = Asset::get("index.html").unwrap().data;
-    let template = String::from_utf8_lossy(&template.as_ref());
+    let template = String::from_utf8_lossy(template.as_ref());
 
     let html = template.replace("<!--SSR-->", &html);
 
