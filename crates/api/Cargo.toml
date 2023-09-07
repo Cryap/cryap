@@ -33,3 +33,5 @@ tera = "1.19.0"
 redis = { version = "0.23.0", features = ["tokio-comp", "aio", "connection-manager", "r2d2", "rand"] }
 regex = "1.9.1"
 html-escape = "0.2.13"
+async-stream = "0.3.5"
+tokio-stream = "0.1.14"

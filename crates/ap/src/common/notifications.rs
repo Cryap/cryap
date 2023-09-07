@@ -4,6 +4,8 @@ use db::{
 };
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection};
 
+use crate::common::streaming::{StreamingEvent, EVENT_BUS};
+
 pub async fn process_follow(
     by: &User,
     to: &User,
@@ -15,10 +17,13 @@ pub async fn process_follow(
     }
 
     if do_opposite {
-        println!("{} {}", &by.id, &to.id);
         Notification::delete(by, to, None, DbNotificationType::Follow, db_pool).await?;
     } else {
-        Notification::create(by, to, None, DbNotificationType::Follow, db_pool).await?;
+        let notification =
+            Notification::create(by, to, None, DbNotificationType::Follow, db_pool).await?;
+        EVENT_BUS
+            .send(&to.id, StreamingEvent::notification(notification))
+            .await;
     }
 
     Ok(())
@@ -37,7 +42,11 @@ pub async fn process_follow_request(
     if do_opposite {
         Notification::delete(by, to, None, DbNotificationType::FollowRequest, db_pool).await?;
     } else {
-        Notification::create(by, to, None, DbNotificationType::FollowRequest, db_pool).await?;
+        let notification =
+            Notification::create(by, to, None, DbNotificationType::FollowRequest, db_pool).await?;
+        EVENT_BUS
+            .send(&to.id, StreamingEvent::notification(notification))
+            .await;
     }
 
     Ok(())
@@ -45,7 +54,7 @@ pub async fn process_follow_request(
 
 pub async fn process_post(post: &Post, db_pool: &Pool<AsyncPgConnection>) -> anyhow::Result<()> {
     for user in post.local_mentioned_users(db_pool).await? {
-        Notification::create_by_ids(
+        let notification = Notification::create_by_ids(
             post.author.clone(),
             user.id.clone(),
             Some(post.id.clone()),
@@ -53,6 +62,9 @@ pub async fn process_post(post: &Post, db_pool: &Pool<AsyncPgConnection>) -> any
             db_pool,
         )
         .await?;
+        EVENT_BUS
+            .send(&user.id, StreamingEvent::notification(notification))
+            .await;
     }
 
     Ok(())
@@ -79,7 +91,7 @@ pub async fn process_like(
         )
         .await?;
     } else {
-        Notification::create(
+        let notification = Notification::create(
             by,
             &author,
             Some(post),
@@ -87,6 +99,9 @@ pub async fn process_like(
             db_pool,
         )
         .await?;
+        EVENT_BUS
+            .send(&author.id, StreamingEvent::notification(notification))
+            .await;
     }
 
     Ok(())
@@ -106,7 +121,12 @@ pub async fn process_boost(
     if do_opposite {
         Notification::delete(by, &author, Some(post), DbNotificationType::Reblog, db_pool).await?;
     } else {
-        Notification::create(by, &author, Some(post), DbNotificationType::Reblog, db_pool).await?;
+        let notification =
+            Notification::create(by, &author, Some(post), DbNotificationType::Reblog, db_pool)
+                .await?;
+        EVENT_BUS
+            .send(&author.id, StreamingEvent::notification(notification))
+            .await;
     }
 
     Ok(())

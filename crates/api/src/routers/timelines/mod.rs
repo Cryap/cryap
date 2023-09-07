@@ -1,3 +1,5 @@
+mod streaming;
+
 use std::sync::Arc;
 
 use axum::{
@@ -18,7 +20,7 @@ pub async fn http_get_home(
 }
 
 pub fn timelines(state: &Arc<AppState>) -> Router<Arc<AppState>> {
-    Router::new().route(
+    Router::new().merge(streaming::streaming(state)).route(
         "/api/v1/timelines/home",
         get(http_get_home.layer(from_fn_with_state(Arc::clone(state), auth_middleware))),
     )

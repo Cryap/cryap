@@ -9,7 +9,7 @@ use web::AppState;
 use crate::entities::{Account, Status};
 
 #[skip_serializing_none]
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 pub struct Notification {
     pub id: String,
     pub account: Account,
