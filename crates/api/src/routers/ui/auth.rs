@@ -37,7 +37,7 @@ pub async fn http_get_sign_in(
     }
 
     let mut context = Context::new();
-    context.insert("title", "Cryap"); // TODO: Add ability to specify it in config
+    context.insert("title", &state.config.instance.title);
     context.insert("redirect_url", &query.redirect_url);
     Ok(Html(TEMPLATES.render("sign_in.html", &context)?).into_response())
 }
@@ -97,7 +97,7 @@ pub async fn http_post_sign_in(
         context.insert("invalid", &true);
     }
 
-    context.insert("title", "Cryap"); // TODO: Add ability to specify it in config
+    context.insert("title", &state.config.instance.title);
     context.insert("redirect_url", &redirect_url);
     Ok(Html(TEMPLATES.render("sign_in.html", &context)?).into_response())
 }
@@ -126,7 +126,7 @@ pub async fn http_get_oauth_authorize_native(
 
     let user = session.user(&state.db_pool).await?;
     let mut context = Context::new();
-    context.insert("title", "Cryap"); // TODO: Add ability to specify it in config
+    context.insert("title", &state.config.instance.title);
     context.insert("username", &user.display_name.unwrap_or(user.name));
     context.insert("code", &query.code.unwrap_or(String::new()));
     Ok(Html(TEMPLATES.render("code_display.html", &context)?).into_response())

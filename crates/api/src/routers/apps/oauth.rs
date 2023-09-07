@@ -66,7 +66,7 @@ pub async fn http_get_oauth_authorize(
 
     let user = session.user(&state.db_pool).await?;
     let mut context = Context::new();
-    context.insert("title", "Cryap"); // TODO: Add ability to specify it in config
+    context.insert("title", &state.config.instance.title);
     context.insert("username", &user.display_name.unwrap_or(user.name));
     context.insert("application_name", &application.name);
     context.insert("client_id", &query.client_id);
