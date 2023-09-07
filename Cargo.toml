@@ -44,10 +44,11 @@ async-trait = "0.1.68"
 url = { version = "2.4.0", features = ["serde"] }
 enum_delegate = "0.2.0"
 serde_with = { version = "3.0.0", features = ["json"] }
-tower-http = { version = "0.4.1", features = ["fs", "trace", "cors"] }
+tower-http = { version = "0.4.1", features = ["fs", "trace", "cors", "normalize-path"] }
 redis = { version = "0.23.0", features = ["tokio-comp", "aio", "connection-manager", "r2d2", "rand"] }
 toml = "0.7.6"
 rust-embed = { version = "6.8.1", features = ["include-flate", "interpolate-folder-path", "axum-ex"] }
 mime_guess = "2.0.4"
 tokio-util = { version = "0.7.8", features = ["rt"] }
 http = "0.2.9"
+tower-layer = "0.3.2"

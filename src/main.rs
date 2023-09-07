@@ -14,6 +14,7 @@ use activitypub_federation::{
     http_signatures::{generate_actor_keypair, Keypair},
 };
 use ap::objects::service_actor::ServiceActor;
+use axum::ServiceExt;
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
 use listenfd::ListenFd;
 use redis::aio::ConnectionManager;
