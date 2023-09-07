@@ -1,11 +1,11 @@
 [workspace]
 members = [
-    "crates/ap",
-    "crates/api",
-    "crates/db",
-    "crates/web",
-    "crates/frontend",
-    "crates/rpc"
+  "crates/ap",
+  "crates/api",
+  "crates/db",
+  "crates/web",
+  "crates/frontend",
+  "crates/rpc",
 ]
 
 [workspace.package]
@@ -22,7 +22,12 @@ default-run = "cryap"
 
 [dependencies]
 anyhow = "1.0.71"
-axum = { version = "0.6.18", features = ["multipart", "ws", "headers", "macros"] }
+axum = { version = "0.6.18", features = [
+  "multipart",
+  "ws",
+  "headers",
+  "macros",
+] }
 diesel-async = { version = "0.3.1", features = ["postgres", "deadpool"] }
 env_logger = "0.10.0"
 listenfd = "1.0.1"
@@ -35,19 +40,45 @@ ap = { path = "crates/ap" }
 api = { path = "crates/api" }
 web = { path = "crates/web" }
 rpc = { path = "crates/rpc" }
-frontend = { default-features = false, features = [ "ssr" ], path = "crates/frontend" }
-diesel = { version = "2.1.0", features = ["postgres", "url", "without-deprecated", "serde_json", "chrono", "nightly-error-messages"] }
+frontend = { default-features = false, features = [
+  "ssr",
+], path = "crates/frontend" }
+diesel = { version = "2.1.0", features = [
+  "postgres",
+  "url",
+  "without-deprecated",
+  "serde_json",
+  "chrono",
+  "nightly-error-messages",
+] }
 time = { version = "0.3.23" }
 serde_json = "1.0.97"
-activitypub_federation = { git = "https://github.com/LemmyNet/activitypub-federation-rust.git" , default-features = false, features = ["axum"] }
+activitypub_federation = { git = "https://github.com/LemmyNet/activitypub-federation-rust.git", default-features = false, features = [
+  "axum",
+] }
 async-trait = "0.1.68"
 url = { version = "2.4.0", features = ["serde"] }
 enum_delegate = "0.2.0"
 serde_with = { version = "3.0.0", features = ["json"] }
-tower-http = { version = "0.4.1", features = ["fs", "trace", "cors", "normalize-path"] }
-redis = { version = "0.23.0", features = ["tokio-comp", "aio", "connection-manager", "r2d2", "rand"] }
+tower-http = { version = "0.4.1", features = [
+  "fs",
+  "trace",
+  "cors",
+  "normalize-path",
+] }
+redis = { version = "0.23.0", features = [
+  "tokio-comp",
+  "aio",
+  "connection-manager",
+  "r2d2",
+  "rand",
+] }
 toml = "0.7.6"
-rust-embed = { version = "6.8.1", features = ["include-flate", "interpolate-folder-path", "axum-ex"] }
+rust-embed = { version = "6.8.1", features = [
+  "include-flate",
+  "interpolate-folder-path",
+  "axum-ex",
+] }
 mime_guess = "2.0.4"
 tokio-util = { version = "0.7.8", features = ["rt"] }
 http = "0.2.9"

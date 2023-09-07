@@ -6,17 +6,35 @@ repository.workspace = true
 
 [dependencies]
 anyhow = "1.0.71"
-axum = { version = "0.6.18", features = ["multipart", "ws", "headers", "macros"] }
+axum = { version = "0.6.18", features = [
+  "multipart",
+  "ws",
+  "headers",
+  "macros",
+] }
 diesel-async = { version = "0.3.1", features = ["postgres", "deadpool"] }
 hyper = { version = "0.14.26", features = ["full"] }
 log = "0.4.18"
 serde = "1.0.163"
 tokio = { version = "1.28.2", features = ["full"] }
 tower = "0.4.13"
-diesel = { version = "2.1.0", features = ["postgres", "url", "without-deprecated", "serde_json", "chrono", "nightly-error-messages"] }
+diesel = { version = "2.1.0", features = [
+  "postgres",
+  "url",
+  "without-deprecated",
+  "serde_json",
+  "chrono",
+  "nightly-error-messages",
+] }
 chrono = { version = "0.4.26", features = ["serde"] }
 serde_json = "1.0.97"
 async-trait = "0.1.68"
 url = { version = "2.4.0", features = ["serde"] }
-redis = { version = "0.23.0", features = ["tokio-comp", "aio", "connection-manager", "r2d2", "rand"] }
+redis = { version = "0.23.0", features = [
+  "tokio-comp",
+  "aio",
+  "connection-manager",
+  "r2d2",
+  "rand",
+] }
 tokio-util = { version = "0.7.8", features = ["rt"] }

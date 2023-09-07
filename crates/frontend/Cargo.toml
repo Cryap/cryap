@@ -7,12 +7,11 @@ repository.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = [ "hydrate" ]
-ssr = [ "dep:axum", "leptos/ssr", "leptos_router/ssr" ]
-hydrate = [ "leptos/hydrate", "leptos_router/hydrate" ]
+default = ["hydrate"]
+ssr = ["dep:axum", "leptos/ssr", "leptos_router/ssr"]
+hydrate = ["leptos/hydrate", "leptos_router/hydrate"]
 
 [dependencies]
 axum = { version = "0.6.19", optional = true }
-leptos = { version = "0.4.6", features = [ "nightly" ] }
+leptos = { version = "0.4.6", features = ["nightly"] }
 leptos_router = "0.4.6"
-

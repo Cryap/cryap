@@ -156,6 +156,7 @@
           pkg-config
           yarn
           trunk
+          taplo
         ];
       };
     });
