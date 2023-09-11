@@ -301,6 +301,64 @@ pub async fn http_post_reblog(
     }
 }
 
+// https://docs.joinmastodon.org/methods/statuses/#bookmark
+pub async fn http_post_bookmark(
+    state: Data<Arc<AppState>>,
+    Path(id): Path<String>,
+    Extension(session): Extension<Session>,
+) -> Result<impl IntoResponse, AppError> {
+    let id = DbId::from(id);
+
+    let user = session.user(&state.db_pool).await?;
+    let (post, boost) = posts::post_or_boost_by_id(&id, &state.db_pool).await?;
+
+    if let Some(post) = post {
+        if boost.is_none() && !posts::accessible_for(&post, Some(&user), &state.db_pool).await? {
+            return Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response());
+        }
+
+        post.bookmark(&user, &state.db_pool).await?;
+
+        match boost {
+            Some(boost) => {
+                Ok(Json(Status::build_from_boost(boost, None, &state).await?).into_response())
+            },
+            None => Ok(Json(Status::build(post, None, &state).await?).into_response()),
+        }
+    } else {
+        Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
+    }
+}
+
+// https://docs.joinmastodon.org/methods/statuses/#unbookmark
+pub async fn http_post_unbookmark(
+    state: Data<Arc<AppState>>,
+    Path(id): Path<String>,
+    Extension(session): Extension<Session>,
+) -> Result<impl IntoResponse, AppError> {
+    let id = DbId::from(id);
+
+    let user = session.user(&state.db_pool).await?;
+    let (post, boost) = posts::post_or_boost_by_id(&id, &state.db_pool).await?;
+
+    if let Some(post) = post {
+        if boost.is_none() && !posts::accessible_for(&post, Some(&user), &state.db_pool).await? {
+            return Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response());
+        }
+
+        post.unbookmark(&user, &state.db_pool).await?;
+
+        match boost {
+            Some(boost) => {
+                Ok(Json(Status::build_from_boost(boost, None, &state).await?).into_response())
+            },
+            None => Ok(Json(Status::build(post, None, &state).await?).into_response()),
+        }
+    } else {
+        Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
+    }
+}
+
 pub fn statuses(state: &Arc<AppState>) -> Router<Arc<AppState>> {
     Router::new()
         .route(
@@ -341,5 +399,15 @@ pub fn statuses(state: &Arc<AppState>) -> Router<Arc<AppState>> {
         .route(
             "/api/v1/statuses/:id/reblog",
             post(http_post_reblog.layer(from_fn_with_state(Arc::clone(state), auth_middleware))),
+        )
+        .route(
+            "/api/v1/statuses/:id/bookmark",
+            post(http_post_bookmark.layer(from_fn_with_state(Arc::clone(state), auth_middleware))),
+        )
+        .route(
+            "/api/v1/statuses/:id/unbookmark",
+            post(
+                http_post_unbookmark.layer(from_fn_with_state(Arc::clone(state), auth_middleware)),
+            ),
         )
 }

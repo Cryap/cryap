@@ -4,6 +4,7 @@ use activitypub_federation::{
     config::Data, fetch::object_id::ObjectId, kinds::activity::LikeType, traits::ActivityHandler,
 };
 use async_trait::async_trait;
+use chrono::Utc;
 use db::{
     models::PostLike,
     schema::{post_like, post_like::dsl},
@@ -57,6 +58,7 @@ impl ActivityHandler for Like {
                 actor_id: actor.id.clone(),
                 post_id: post.id.clone(),
                 ap_id: self.id.to_string(),
+                published: Utc::now().naive_utc(),
             }])
             .on_conflict((post_like::actor_id, post_like::post_id))
             .do_nothing()

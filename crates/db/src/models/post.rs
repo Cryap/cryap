@@ -1,12 +1,13 @@
 use anyhow::anyhow;
-use diesel::{dsl::sql, prelude::*, result::Error::NotFound, sql_types::Bool};
+use chrono::Utc;
+use diesel::{delete, dsl::sql, insert_into, prelude::*, result::Error::NotFound, sql_types::Bool};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
 use crate::{
-    models::{PostBoost, User},
+    models::{Bookmark, PostBoost, User},
     paginate,
     pagination::Pagination,
-    schema::{post_boost, post_like, post_mention, posts, users},
+    schema::{bookmarks, post_boost, post_like, post_mention, posts, users},
     types::{DbId, DbVisibility},
 };
 
@@ -100,6 +101,24 @@ impl Post {
         }
     }
 
+    pub async fn bookmarked_by(
+        &self,
+        user: &User,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<bool> {
+        let result = bookmarks::table
+            .select(sql::<Bool>("true"))
+            .filter(bookmarks::post_id.eq(&self.id))
+            .filter(bookmarks::actor_id.eq(&user.id))
+            .first::<bool>(&mut db_pool.get().await?)
+            .await;
+        match result {
+            Ok(_) => Ok(true),
+            Err(NotFound) => Ok(false),
+            Err(err) => Err(err.into()),
+        }
+    }
+
     pub async fn boost_by(
         &self,
         user: &User,
@@ -133,6 +152,44 @@ impl Post {
             Err(NotFound) => Ok(false),
             Err(err) => Err(err.into()),
         }
+    }
+
+    pub async fn bookmark(
+        &self,
+        user: &User,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Bookmark> {
+        let bookmark = Bookmark {
+            id: DbId::default(),
+            actor_id: user.id.clone(),
+            post_id: self.id.clone(),
+            published: Utc::now().naive_utc(),
+        };
+
+        insert_into(bookmarks::dsl::bookmarks)
+            .values(vec![bookmark.clone()])
+            .on_conflict((bookmarks::actor_id, bookmarks::post_id))
+            .do_nothing()
+            .execute(&mut db_pool.get().await?)
+            .await?;
+
+        Ok(bookmark)
+    }
+
+    pub async fn unbookmark(
+        &self,
+        user: &User,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<()> {
+        let _ = delete(
+            bookmarks::table
+                .filter(bookmarks::actor_id.eq(user.id.clone()))
+                .filter(bookmarks::post_id.eq(self.id.clone())),
+        )
+        .execute(&mut db_pool.get().await?)
+        .await;
+
+        Ok(())
     }
 
     pub async fn local_mentioned_users(

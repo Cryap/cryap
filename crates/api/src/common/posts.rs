@@ -253,6 +253,7 @@ pub async fn like(user: &User, post: &Post, data: &Data<Arc<AppState>>) -> anyho
             actor_id: user.id.clone(),
             post_id: post.id.clone(),
             ap_id: id.to_string(),
+            published: Utc::now().naive_utc(),
         }])
         .on_conflict((post_like::actor_id, post_like::post_id))
         .do_nothing()

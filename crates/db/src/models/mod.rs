@@ -1,4 +1,5 @@
 pub mod application;
+pub mod bookmark;
 pub mod notification;
 pub mod post;
 pub mod post_boost;
@@ -10,6 +11,7 @@ pub mod user_follow_requests;
 pub mod user_followers;
 
 pub use application::Application;
+pub use bookmark::Bookmark;
 pub use notification::Notification;
 pub use post::{Post, PostMention};
 pub use post_boost::PostBoost;

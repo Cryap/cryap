@@ -1,3 +1,4 @@
+mod bookmarks;
 mod favourites;
 
 use std::sync::Arc;
@@ -293,6 +294,7 @@ pub async fn http_get_relationships(
 
 pub fn accounts(state: &Arc<AppState>) -> Router<Arc<AppState>> {
     Router::new()
+        .merge(bookmarks::bookmarks(state))
         .merge(favourites::favourites(state))
         .route(
             "/api/v1/accounts/verify_credentials",

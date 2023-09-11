@@ -29,6 +29,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    bookmarks (id) {
+        #[max_length = 27]
+        id -> Bpchar,
+        #[max_length = 27]
+        post_id -> Bpchar,
+        #[max_length = 27]
+        actor_id -> Bpchar,
+        published -> Timestamp,
+    }
+}
+
+diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::NotificationType;
 
@@ -72,6 +84,7 @@ diesel::table! {
         post_id -> Bpchar,
         #[max_length = 27]
         actor_id -> Bpchar,
+        published -> Timestamp,
     }
 }
 
@@ -183,6 +196,8 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(bookmarks -> posts (post_id));
+diesel::joinable!(bookmarks -> users (actor_id));
 diesel::joinable!(notifications -> posts (post_id));
 diesel::joinable!(post_boost -> posts (post_id));
 diesel::joinable!(post_boost -> users (actor_id));
@@ -196,6 +211,7 @@ diesel::joinable!(sessions -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     applications,
+    bookmarks,
     notifications,
     post_boost,
     post_like,

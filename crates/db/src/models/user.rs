@@ -5,7 +5,7 @@ use crate::{
     models::Post,
     paginate,
     pagination::Pagination,
-    schema::{post_like, posts, user_follow_requests, user_followers, users},
+    schema::{bookmarks, post_like, posts, user_follow_requests, user_followers, users},
     types::DbId,
     utils::coalesce,
 };
@@ -200,6 +200,23 @@ impl User {
             .filter(post_like::actor_id.eq(&self.id))
             .inner_join(posts::dsl::posts.on(posts::id.eq(post_like::post_id)))
             .select(posts::all_columns)
+            .order(post_like::published.desc())
+            .into_boxed();
+        let query = paginate!(query, posts::id, pagination);
+
+        Ok(query.load::<Post>(&mut db_pool.get().await?).await?)
+    }
+
+    pub async fn bookmarked_posts(
+        &self,
+        pagination: Pagination,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Vec<Post>> {
+        let query = bookmarks::table
+            .filter(bookmarks::actor_id.eq(&self.id))
+            .inner_join(posts::dsl::posts.on(posts::id.eq(bookmarks::post_id)))
+            .select(posts::all_columns)
+            .order(bookmarks::published.desc())
             .into_boxed();
         let query = paginate!(query, posts::id, pagination);
 

@@ -1,11 +1,11 @@
 use diesel::prelude::*;
 
-use crate::{schema::post_like, types::DbId};
+use crate::{schema::bookmarks, types::DbId};
 
 #[derive(Queryable, Insertable, AsChangeset, Selectable, Debug, PartialEq, Clone, Eq)]
-#[diesel(table_name = post_like)]
-pub struct PostLike {
-    pub ap_id: String,
+#[diesel(table_name = bookmarks)]
+pub struct Bookmark {
+    pub id: DbId,
     pub post_id: DbId,
     pub actor_id: DbId,
     pub published: chrono::NaiveDateTime,
