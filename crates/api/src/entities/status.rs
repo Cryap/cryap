@@ -70,7 +70,7 @@ pub struct Status {
 impl Status {
     pub async fn build(
         post: Post,
-        _user: Option<&User>, // TODO
+        user: Option<&User>,
         state: &Arc<AppState>,
     ) -> anyhow::Result<Self> {
         let mut conn = state.db_pool.get().await?;
@@ -100,6 +100,18 @@ impl Status {
         let in_reply = match post.in_reply.clone() {
             Some(post_id) => Post::by_id(&post_id, &state.db_pool).await?,
             None => None,
+        };
+
+        let relationship = if let Some(user) = user {
+            Some(StatusRelationship {
+                favourited: post.is_liked_by(user, &state.db_pool).await?,
+                reblogged: post.boost_by(user, &state.db_pool).await?.is_some(),
+                muted: false,
+                bookmarked: post.bookmarked_by(user, &state.db_pool).await?,
+                pinned: false,
+            })
+        } else {
+            None
         };
 
         Ok(Status {
@@ -136,7 +148,7 @@ impl Status {
             language: None,
             text: post.content, // TODO: remove html tags maybe
             edited_at: None,
-            relationship: None,
+            relationship,
         })
     }
 
