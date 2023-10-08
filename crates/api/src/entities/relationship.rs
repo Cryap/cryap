@@ -1,4 +1,4 @@
-use db::models::User;
+use db::models::{PrivateNote, User};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection};
 use serde::Serialize;
 
@@ -23,7 +23,7 @@ impl Relationship {
             following: by.follows(to, db_pool).await?,
             followed_by: to.follows(by, db_pool).await?,
             requested: by.wants_to_follow(to, db_pool).await?,
-            note: String::new(),
+            note: PrivateNote::get(by, to, db_pool).await?.unwrap_or_default(),
         })
     }
 }

@@ -127,6 +127,19 @@ diesel::table! {
 }
 
 diesel::table! {
+    private_notes (id) {
+        #[max_length = 27]
+        id -> Bpchar,
+        #[max_length = 27]
+        actor_id -> Bpchar,
+        #[max_length = 27]
+        user_id -> Bpchar,
+        #[max_length = 2000]
+        note -> Varchar,
+    }
+}
+
+diesel::table! {
     sessions (id) {
         #[max_length = 27]
         id -> Bpchar,
@@ -217,6 +230,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     post_like,
     post_mention,
     posts,
+    private_notes,
     sessions,
     user_follow_requests,
     user_followers,

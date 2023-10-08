@@ -15,7 +15,7 @@ use axum::{
 };
 use axum_extra::extract::Query as QueryExtra;
 use db::{
-    models::{Session, User},
+    models::{PrivateNote, Session, User},
     pagination::PaginationQuery,
     types::DbId,
 };
@@ -249,6 +249,53 @@ pub async fn http_post_remove_from_followers(
     }
 }
 
+#[derive(Deserialize)]
+pub struct NoteBody {
+    comment: String,
+}
+
+// https://docs.joinmastodon.org/methods/accounts/#note
+pub async fn http_post_note(
+    state: Data<Arc<AppState>>,
+    Path(id): Path<String>,
+    Extension(session): Extension<Session>,
+    Json(body): Json<NoteBody>,
+) -> Result<impl IntoResponse, AppError> {
+    let id = DbId::from(id);
+
+    let by = session.user(&state.db_pool).await?;
+    let to = User::by_id(&id, &state.db_pool).await?;
+
+    if let Some(to) = to {
+        let note = if body.comment.trim().is_empty() {
+            PrivateNote::set(&by, &to, None, &state.db_pool).await?;
+            String::new()
+        } else {
+            if body.comment.len() > 2000 {
+                return Ok(ApiError::new(
+                    "Validation failed: Comment is too long (maximum is 2000 characters)",
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                )
+                .into_response());
+            }
+
+            PrivateNote::set(&by, &to, Some(&body.comment), &state.db_pool).await?;
+            body.comment
+        };
+
+        Ok(Json(Relationship {
+            id: to.id.to_string(),
+            following: by.follows(&to, &state.db_pool).await?,
+            followed_by: to.follows(&by, &state.db_pool).await?,
+            requested: by.wants_to_follow(&to, &state.db_pool).await?,
+            note,
+        })
+        .into_response())
+    } else {
+        Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
+    }
+}
+
 // This can be done using enum, but https://github.com/nox/serde_urlencoded/issues/66
 #[derive(Deserialize)]
 pub struct RelationshipsQuery {
@@ -319,6 +366,10 @@ pub fn accounts(state: &Arc<AppState>) -> Router<Arc<AppState>> {
                 http_post_remove_from_followers
                     .layer(from_fn_with_state(Arc::clone(state), auth_middleware)),
             ),
+        )
+        .route(
+            "/api/v1/accounts/:id/note",
+            post(http_post_note.layer(from_fn_with_state(Arc::clone(state), auth_middleware))),
         )
         .route(
             "/api/v1/accounts/relationships",
