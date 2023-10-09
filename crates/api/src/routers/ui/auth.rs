@@ -128,7 +128,7 @@ pub async fn http_get_oauth_authorize_native(
     let mut context = Context::new();
     context.insert("title", &state.config.instance.title);
     context.insert("username", &user.display_name.unwrap_or(user.name));
-    context.insert("code", &query.code.unwrap_or(String::new()));
+    context.insert("code", &query.code.unwrap_or_default());
     Ok(Html(TEMPLATES.render("code_display.html", &context)?).into_response())
 }
 

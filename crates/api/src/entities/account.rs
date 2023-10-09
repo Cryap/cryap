@@ -70,14 +70,14 @@ impl Account {
                 format!("{}@{}", user.name, user.instance)
             },
             created_at: user.published,
-            note: user.bio.clone().unwrap_or(String::new()),
+            note: user.bio.clone().unwrap_or_default(),
             followers_count: followers_count.try_into().unwrap(),
             following_count: following_count.try_into().unwrap(),
 
             source: match with_source {
                 true => Some(AccountSource {
                     sensitive: false,
-                    note: user.bio.unwrap_or(String::new()),
+                    note: user.bio.unwrap_or_default(),
                     fields: vec![],
                     privacy: DbVisibility::Public,
                     language: "en".to_string(),
