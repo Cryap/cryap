@@ -139,7 +139,7 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
     if !options.local_only {
         let activity = CreateNote::from(ApNote(object.clone()).into_json(data).await?);
 
-        let mut inboxes = by.following_inboxes(&data.db_pool).await?;
+        let mut inboxes = by.reached_inboxes(&data.db_pool).await?;
         inboxes.extend(
             mentions
                 .iter()
@@ -201,7 +201,7 @@ pub async fn boost(
         let activity = ApAnnounce(object.clone()).into_json(data).await?;
 
         let user = ApUser(user.clone());
-        let mut inboxes = user.following_inboxes(&data.db_pool).await?;
+        let mut inboxes = user.reached_inboxes(&data.db_pool).await?;
         let author_inbox = user.shared_inbox_or_inbox().to_string();
         if !inboxes.contains(&author_inbox) {
             inboxes.push(author_inbox);

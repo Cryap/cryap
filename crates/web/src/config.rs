@@ -42,8 +42,8 @@ pub struct Instance {
     pub max_characters: i32,
     #[serde(default = "display_name_max_characters_default")]
     pub display_name_max_characters: i32,
-    #[serde(default = "summary_max_characters_default")]
-    pub summary_max_characters: i32,
+    #[serde(default = "bio_max_characters_default")]
+    pub bio_max_characters: i32,
 }
 
 fn description_default() -> String {
@@ -62,6 +62,6 @@ fn display_name_max_characters_default() -> i32 {
     30
 }
 
-fn summary_max_characters_default() -> i32 {
+fn bio_max_characters_default() -> i32 {
     500
 }

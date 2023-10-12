@@ -39,14 +39,14 @@ pub struct Follow {
 }
 
 impl Follow {
-    pub fn new(id: Option<DbId>, by: User, to: User) -> Follow {
+    pub fn new(id: Option<DbId>, by: User, to: User) -> Self {
         let id = Url::parse(&format!(
             "{}/activities/follows/{}",
             by.ap_id,
             id.unwrap_or_default()
         ))
         .unwrap(); // TODO: Review
-        Follow {
+        Self {
             id: id.clone(),
             kind: Default::default(),
             actor: ObjectId::<ApUser>::from(Url::parse(&by.ap_id).unwrap()),

@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
-use activitypub_federation::http_signatures::generate_actor_keypair;
+use activitypub_federation::{
+    activity_queue::send_activity, config::Data, http_signatures::generate_actor_keypair,
+};
 use anyhow::anyhow;
-use ap::objects::user::ApUser;
+use ap::{activities::update::Update, objects::user::ApUser};
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
     Argon2,
@@ -11,6 +13,7 @@ use chrono::Utc;
 use db::{models::user::User, schema::users, types::DbId};
 use diesel::{insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
+use url::Url;
 use web::AppState;
 
 pub const USERNAME_RE: &str = r"[a-z0-9_]+([a-z0-9_.-]+[a-z0-9_]+)?";
@@ -83,4 +86,19 @@ pub async fn get_instances(state: &Arc<AppState>) -> anyhow::Result<Vec<String>>
         .select(users::instance)
         .load(&mut state.db_pool.get().await?)
         .await?)
+}
+
+pub async fn distribute_update(user: &User, data: &Data<Arc<AppState>>) -> anyhow::Result<()> {
+    send_activity(
+        Update::build(user.clone(), data).await?,
+        &ApUser(user.clone()),
+        user.reached_inboxes(&data.db_pool)
+            .await?
+            .into_iter()
+            .map(|inbox| Url::parse(&inbox))
+            .collect::<Result<Vec<Url>, url::ParseError>>()?,
+        data,
+    )
+    .await?;
+    Ok(())
 }

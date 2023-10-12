@@ -25,6 +25,7 @@ use url::Url;
 use web::AppState;
 
 use super::user::ApUser;
+use crate::PUBLIC;
 
 kind!(HashtagType, Hashtag);
 kind!(EmojiType, Emoji);
@@ -61,8 +62,6 @@ pub struct Hashtag {
     pub href: Url,
     name: Option<String>,
 }
-
-const PUBLIC: &str = "https://www.w3.org/ns/activitystreams#Public";
 
 pub fn parse_to_cc(to: &Vec<Url>, cc: &Vec<Url>, actor_followers_uri: Url) -> DbVisibility {
     let public_url = Url::parse(PUBLIC).unwrap();

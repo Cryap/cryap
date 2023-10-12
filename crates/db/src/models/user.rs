@@ -35,6 +35,19 @@ pub struct User {
     pub manually_approves_followers: bool,
 }
 
+#[derive(AsChangeset, Clone)]
+#[diesel(table_name = users)]
+// When you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
+pub struct UserUpdate {
+    pub name: Option<String>,
+    pub display_name: Option<Option<String>>,
+    pub bio: Option<Option<String>>,
+    pub password_encrypted: Option<Option<String>>,
+    pub admin: Option<bool>,
+    pub updated: Option<Option<chrono::NaiveDateTime>>,
+    pub manually_approves_followers: Option<bool>,
+}
+
 impl User {
     pub async fn by_id(
         id: &DbId,
@@ -102,6 +115,18 @@ impl User {
             Err(NotFound) => Ok(None),
             Err(err) => Err(err.into()),
         }
+    }
+
+    pub async fn update(
+        &self,
+        updated_user: UserUpdate,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<()> {
+        diesel::update(&self)
+            .set(updated_user)
+            .execute(&mut db_pool.get().await?)
+            .await?;
+        Ok(())
     }
 
     pub async fn follows_by_id(
@@ -178,7 +203,7 @@ impl User {
         Ok(query.load::<Self>(&mut db_pool.get().await?).await?)
     }
 
-    pub async fn following_inboxes(
+    pub async fn reached_inboxes(
         &self,
         db_pool: &Pool<AsyncPgConnection>,
     ) -> anyhow::Result<Vec<String>> {

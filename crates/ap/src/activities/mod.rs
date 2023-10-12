@@ -9,6 +9,7 @@ pub mod follow;
 pub mod like;
 pub mod reject;
 pub mod undo;
+pub mod update;
 
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(untagged)]
@@ -23,4 +24,5 @@ pub enum UserInbox {
     UndoLike(undo::like::UndoLike),
     Announce(announce::Announce),
     UndoAnnounce(undo::announce::UndoAnnounce),
+    Update(update::Update),
 }

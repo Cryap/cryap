@@ -10,12 +10,12 @@ use axum::{
     http::{header, StatusCode},
     middleware::from_fn_with_state,
     response::IntoResponse,
-    routing::{get, post},
+    routing::{get, patch, post},
     Json, Router,
 };
 use axum_extra::extract::Query as QueryExtra;
 use db::{
-    models::{PrivateNote, Session, User},
+    models::{user::UserUpdate, PrivateNote, Session, User},
     pagination::PaginationQuery,
     types::DbId,
 };
@@ -25,12 +25,12 @@ use web::{errors::AppError, AppState};
 
 use crate::{
     auth_middleware::auth_middleware,
-    common::follows,
+    common::{follows, users},
     entities::{Account, Relationship},
     error::ApiError,
 };
 
-// TODO: Fully implement https://docs.joinmastodon.org/methods/accounts/#verify_credentials
+// https://docs.joinmastodon.org/methods/accounts/#verify_credentials
 pub async fn http_get_verify_credentials(
     state: State<Arc<AppState>>,
     Extension(session): Extension<Session>,
@@ -39,6 +39,80 @@ pub async fn http_get_verify_credentials(
         Json(Account::build(session.user(&state.db_pool).await?, &state, true).await?)
             .into_response(),
     )
+}
+
+#[derive(Deserialize)]
+pub struct UpdateCredentialsBody {
+    display_name: Option<String>,
+    #[serde(rename = "note")]
+    bio: Option<String>,
+}
+
+// TODO: Fully implement https://docs.joinmastodon.org/methods/accounts/#update_credentials
+pub async fn http_patch_update_credentials(
+    state: Data<Arc<AppState>>,
+    Extension(session): Extension<Session>,
+    Json(body): Json<UpdateCredentialsBody>,
+) -> Result<impl IntoResponse, AppError> {
+    let mut user = session.user(&state.db_pool).await?;
+    let mut updated_user = UserUpdate {
+        name: None,
+        display_name: None,
+        bio: None,
+        password_encrypted: None,
+        admin: None,
+        updated: None,
+        manually_approves_followers: None,
+    };
+
+    if let Some(display_name) = body.display_name {
+        if display_name.trim().is_empty() {
+            user.display_name = None;
+            updated_user.display_name = Some(None);
+        } else {
+            let max_characters = state.config.instance.display_name_max_characters;
+            if display_name.len() > max_characters.try_into().unwrap() {
+                return Ok(ApiError::new_from_string(
+                    format!(
+                        "Validation failed: Display name is too long (maximum is {} characters)",
+                        max_characters
+                    ),
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                )
+                .into_response());
+            }
+
+            user.display_name = Some(display_name.clone());
+            updated_user.display_name = Some(Some(display_name));
+        }
+    }
+
+    if let Some(bio) = body.bio {
+        if bio.trim().is_empty() {
+            user.bio = None;
+            updated_user.bio = Some(None);
+        } else {
+            let max_characters = state.config.instance.bio_max_characters;
+            if bio.len() > max_characters.try_into().unwrap() {
+                return Ok(ApiError::new_from_string(
+                    format!(
+                        "Validation failed: Note character limit of {} exceeded",
+                        max_characters
+                    ),
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                )
+                .into_response());
+            }
+
+            user.bio = Some(bio.clone());
+            updated_user.bio = Some(Some(bio));
+        }
+    }
+
+    user.update(updated_user, &state.db_pool).await?;
+    users::distribute_update(&user, &state).await?;
+
+    Ok(Json(Account::build(user, &state, true).await?).into_response())
 }
 
 #[derive(Deserialize)]
@@ -347,6 +421,13 @@ pub fn accounts(state: &Arc<AppState>) -> Router<Arc<AppState>> {
             "/api/v1/accounts/verify_credentials",
             get(http_get_verify_credentials
                 .layer(from_fn_with_state(Arc::clone(state), auth_middleware))),
+        )
+        .route(
+            "/api/v1/accounts/update_credentials",
+            patch(
+                http_patch_update_credentials
+                    .layer(from_fn_with_state(Arc::clone(state), auth_middleware)),
+            ),
         )
         .route("/api/v1/accounts/lookup", get(http_get_lookup))
         .route("/api/v1/accounts/:id", get(http_get_get))

@@ -18,8 +18,12 @@ pub struct ApiError {
 
 impl ApiError {
     pub fn new(error: &str, status_code: StatusCode) -> Self {
+        Self::new_from_string(String::from(error), status_code)
+    }
+
+    pub fn new_from_string(error: String, status_code: StatusCode) -> Self {
         Self {
-            error: String::from(error),
+            error,
             description: None,
             status_code: Some(status_code),
         }
