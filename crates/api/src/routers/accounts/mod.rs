@@ -57,8 +57,10 @@ pub async fn http_patch_update_credentials(
 ) -> Result<impl IntoResponse, AppError> {
     let mut user = session.user(&state.db_pool).await?;
     let mut updated_user = UserUpdate::new();
+    let mut there_are_changes = false;
 
     if let Some(display_name) = body.display_name {
+        there_are_changes = true;
         if display_name.trim().is_empty() {
             user.display_name = None;
             updated_user.display_name = Some(None);
@@ -81,6 +83,7 @@ pub async fn http_patch_update_credentials(
     }
 
     if let Some(bio) = body.bio {
+        there_are_changes = true;
         if bio.trim().is_empty() {
             user.bio = None;
             updated_user.bio = Some(None);
@@ -103,12 +106,15 @@ pub async fn http_patch_update_credentials(
     }
 
     if let Some(is_cat) = body.is_cat {
+        there_are_changes = true;
         user.is_cat = is_cat;
         updated_user.is_cat = Some(is_cat);
     }
 
-    user.update(updated_user, &state.db_pool).await?;
-    users::distribute_update(&user, &state).await?;
+    if there_are_changes {
+        user.update(updated_user, &state.db_pool).await?;
+        users::distribute_update(&user, &state).await?;
+    }
 
     Ok(Json(Account::build(user, &state, true).await?).into_response())
 }
