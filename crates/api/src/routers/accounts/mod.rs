@@ -46,6 +46,7 @@ pub struct UpdateCredentialsBody {
     display_name: Option<String>,
     #[serde(rename = "note")]
     bio: Option<String>,
+    is_cat: Option<bool>,
 }
 
 // TODO: Fully implement https://docs.joinmastodon.org/methods/accounts/#update_credentials
@@ -55,15 +56,7 @@ pub async fn http_patch_update_credentials(
     Json(body): Json<UpdateCredentialsBody>,
 ) -> Result<impl IntoResponse, AppError> {
     let mut user = session.user(&state.db_pool).await?;
-    let mut updated_user = UserUpdate {
-        name: None,
-        display_name: None,
-        bio: None,
-        password_encrypted: None,
-        admin: None,
-        updated: None,
-        manually_approves_followers: None,
-    };
+    let mut updated_user = UserUpdate::new();
 
     if let Some(display_name) = body.display_name {
         if display_name.trim().is_empty() {
@@ -107,6 +100,11 @@ pub async fn http_patch_update_credentials(
             user.bio = Some(bio.clone());
             updated_user.bio = Some(Some(bio));
         }
+    }
+
+    if let Some(is_cat) = body.is_cat {
+        user.is_cat = is_cat;
+        updated_user.is_cat = Some(is_cat);
     }
 
     user.update(updated_user, &state.db_pool).await?;

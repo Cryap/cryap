@@ -206,6 +206,7 @@ diesel::table! {
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
         manually_approves_followers -> Bool,
+        is_cat -> Bool,
     }
 }
 

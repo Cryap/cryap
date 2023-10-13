@@ -47,6 +47,7 @@ pub struct Person {
     pub public_key: PublicKey,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub endpoints: Option<Endpoints>,
+    #[serde(default = "default_false")]
     pub manually_approves_followers: bool,
 
     /// displayname
@@ -55,6 +56,13 @@ pub struct Person {
     pub summary: Option<String>,
     pub published: Option<DateTime<Utc>>,
     pub updated: Option<DateTime<Utc>>,
+
+    #[serde(default = "default_false")]
+    pub is_cat: bool,
+}
+
+fn default_false() -> bool {
+    false
 }
 
 #[async_trait::async_trait]
@@ -97,6 +105,7 @@ impl Object for ApUser {
             published: Some(DateTime::<Utc>::from_utc(published, Utc)),
             endpoints: None,
             manually_approves_followers: self.manually_approves_followers,
+            is_cat: self.is_cat,
             followers: Url::parse(&(ap_id.clone() + "/ap/followers"))?, // TODO
             following: Url::parse(&(ap_id + "/ap/following"))?,         // TODO
         })
@@ -146,6 +155,7 @@ impl Object for ApUser {
                 .unwrap_or(Utc::now().naive_utc()),
             updated: Some(Utc::now().naive_utc()),
             manually_approves_followers: json.manually_approves_followers,
+            is_cat: json.is_cat,
         };
 
         Ok(ApUser(

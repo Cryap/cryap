@@ -37,6 +37,8 @@ pub struct Account {
     pub avatar: String,
     pub header_static: String,
     pub avatar_static: String,
+
+    pub is_cat: bool,
 }
 
 impl Account {
@@ -90,6 +92,8 @@ impl Account {
             header_static: "https://http.cat/images/404.jpg".to_string(),
             avatar: "https://http.cat/images/404.jpg".to_string(),
             avatar_static: "https://http.cat/images/404.jpg".to_string(),
+
+            is_cat: user.is_cat,
         })
     }
 

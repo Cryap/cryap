@@ -66,6 +66,7 @@ pub async fn register(
         published: Utc::now().naive_utc(),
         updated: Some(Utc::now().naive_utc()),
         manually_approves_followers: false,
+        is_cat: false,
     };
 
     Ok(ApUser(

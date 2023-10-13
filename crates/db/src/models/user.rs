@@ -33,11 +33,12 @@ pub struct User {
     pub published: chrono::NaiveDateTime,
     pub updated: Option<chrono::NaiveDateTime>,
     pub manually_approves_followers: bool,
+    pub is_cat: bool,
 }
 
 #[derive(AsChangeset, Clone)]
 #[diesel(table_name = users)]
-// When you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
+// When you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column
 pub struct UserUpdate {
     pub name: Option<String>,
     pub display_name: Option<Option<String>>,
@@ -46,6 +47,7 @@ pub struct UserUpdate {
     pub admin: Option<bool>,
     pub updated: Option<Option<chrono::NaiveDateTime>>,
     pub manually_approves_followers: Option<bool>,
+    pub is_cat: Option<bool>,
 }
 
 impl User {
@@ -246,5 +248,20 @@ impl User {
         let query = paginate!(query, posts::id, pagination);
 
         Ok(query.load::<Post>(&mut db_pool.get().await?).await?)
+    }
+}
+
+impl UserUpdate {
+    pub fn new() -> Self {
+        Self {
+            name: None,
+            display_name: None,
+            bio: None,
+            password_encrypted: None,
+            admin: None,
+            updated: None,
+            manually_approves_followers: None,
+            is_cat: None,
+        }
     }
 }

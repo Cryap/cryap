@@ -1,0 +1,3 @@
+-- Your SQL goes here
+
+ALTER TABLE users ADD is_cat BOOLEAN NOT NULL DEFAULT FALSE;
