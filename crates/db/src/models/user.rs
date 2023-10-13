@@ -34,6 +34,7 @@ pub struct User {
     pub updated: Option<chrono::NaiveDateTime>,
     pub manually_approves_followers: bool,
     pub is_cat: bool,
+    pub bot: bool,
 }
 
 #[derive(AsChangeset, Clone)]
@@ -48,6 +49,7 @@ pub struct UserUpdate {
     pub updated: Option<Option<chrono::NaiveDateTime>>,
     pub manually_approves_followers: Option<bool>,
     pub is_cat: Option<bool>,
+    pub bot: Option<bool>,
 }
 
 impl User {
@@ -262,6 +264,7 @@ impl UserUpdate {
             updated: None,
             manually_approves_followers: None,
             is_cat: None,
+            bot: None,
         }
     }
 }

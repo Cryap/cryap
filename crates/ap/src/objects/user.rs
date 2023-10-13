@@ -23,6 +23,7 @@ db_to_ap!(db::models::User, ApUser);
 pub enum UserTypes {
     Person,
     Service,
+    Application,
     Organization,
 }
 
@@ -93,7 +94,11 @@ impl Object for ApUser {
         let published = self.published;
         let name = self.name.clone();
         Ok(Person {
-            kind: UserTypes::Person,
+            kind: if self.bot {
+                UserTypes::Service
+            } else {
+                UserTypes::Person
+            },
             id: ObjectId::from(Url::parse(&self.ap_id)?),
             name: self.display_name.clone().or(Some(name)),
             preferred_username: self.name.clone(),
@@ -156,6 +161,7 @@ impl Object for ApUser {
             updated: Some(Utc::now().naive_utc()),
             manually_approves_followers: json.manually_approves_followers,
             is_cat: json.is_cat,
+            bot: json.kind == UserTypes::Service || json.kind == UserTypes::Application,
         };
 
         Ok(ApUser(

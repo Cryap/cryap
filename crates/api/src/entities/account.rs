@@ -27,6 +27,7 @@ pub struct Account {
     pub acct: String,
     pub display_name: String,
     pub locked: bool,
+    pub bot: bool,
     pub created_at: NaiveDateTime,
     pub note: String,
     pub followers_count: u32,
@@ -66,6 +67,7 @@ impl Account {
             username: user.name.clone(),
             display_name: user.display_name.unwrap_or(user.name.clone()),
             locked: user.manually_approves_followers,
+            bot: user.bot,
             acct: if user.local {
                 user.name
             } else {

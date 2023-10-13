@@ -1,0 +1,3 @@
+-- Your SQL goes here
+
+ALTER TABLE users ADD bot BOOLEAN NOT NULL DEFAULT FALSE;

@@ -46,6 +46,7 @@ pub struct UpdateCredentialsBody {
     display_name: Option<String>,
     #[serde(rename = "note")]
     bio: Option<String>,
+    bot: Option<bool>,
     is_cat: Option<bool>,
 }
 
@@ -103,6 +104,12 @@ pub async fn http_patch_update_credentials(
             user.bio = Some(bio.clone());
             updated_user.bio = Some(Some(bio));
         }
+    }
+
+    if let Some(bot) = body.bot {
+        there_are_changes = true;
+        user.bot = bot;
+        updated_user.bot = Some(bot);
     }
 
     if let Some(is_cat) = body.is_cat {
