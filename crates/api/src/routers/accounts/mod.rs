@@ -256,7 +256,9 @@ pub async fn http_post_follow(
                 following: false,
                 followed_by: to.follows(&by, &state.db_pool).await?,
                 requested: true,
-                note: String::new(),
+                note: PrivateNote::get(&by, &to, &state.db_pool)
+                    .await?
+                    .unwrap_or_default(),
             })
             .into_response())
         } else {
@@ -265,7 +267,9 @@ pub async fn http_post_follow(
                 following: true,
                 followed_by: to.follows(&by, &state.db_pool).await?,
                 requested: false,
-                note: String::new(),
+                note: PrivateNote::get(&by, &to, &state.db_pool)
+                    .await?
+                    .unwrap_or_default(),
             })
             .into_response())
         }
@@ -296,7 +300,9 @@ pub async fn http_post_unfollow(
             following: false,
             followed_by: to.follows(&by, &state.db_pool).await?,
             requested: false,
-            note: String::new(),
+            note: PrivateNote::get(&by, &to, &state.db_pool)
+                .await?
+                .unwrap_or_default(),
         })
         .into_response())
     } else {
@@ -326,7 +332,9 @@ pub async fn http_post_remove_from_followers(
             following: by.follows(&to, &state.db_pool).await?,
             followed_by: false,
             requested: by.wants_to_follow(&to, &state.db_pool).await?,
-            note: String::new(),
+            note: PrivateNote::get(&by, &to, &state.db_pool)
+                .await?
+                .unwrap_or_default(),
         })
         .into_response())
     } else {
