@@ -276,3 +276,9 @@ impl UserUpdate {
         }
     }
 }
+
+impl Default for UserUpdate {
+    fn default() -> Self {
+        Self::new()
+    }
+}

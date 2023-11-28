@@ -11,6 +11,7 @@ pub mod reject;
 pub mod undo;
 pub mod update;
 
+#[deny(clippy::large_enum_variant)]
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(untagged)]
 #[enum_delegate::implement(ActivityHandler)]
