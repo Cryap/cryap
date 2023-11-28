@@ -1,7 +1,11 @@
 use std::sync::Arc;
 
 use chrono::NaiveDateTime;
-use db::{models::User, schema::user_followers, types::DbVisibility};
+use db::{
+    models::User,
+    schema::{user_follow_requests, user_followers},
+    types::DbVisibility,
+};
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use futures::future::join_all;
@@ -60,6 +64,16 @@ impl Account {
             .count()
             .get_result(&mut conn)
             .await?;
+        let follow_requests_count: i64 = match with_source {
+            true => {
+                user_follow_requests::table
+                    .filter(user_follow_requests::follower_id.eq(user.id.clone()))
+                    .count()
+                    .get_result(&mut conn)
+                    .await?
+            },
+            false => 0,
+        };
 
         Ok(Self {
             id: user.id.to_string(),
@@ -85,7 +99,7 @@ impl Account {
                     fields: vec![],
                     privacy: DbVisibility::Public,
                     language: "en".to_string(),
-                    follow_requests_count: 0, // TODO
+                    follow_requests_count: follow_requests_count.try_into().unwrap(),
                 }),
                 false => None,
             },

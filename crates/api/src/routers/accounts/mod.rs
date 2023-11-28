@@ -1,5 +1,6 @@
 mod bookmarks;
 mod favourites;
+mod follow_requests;
 
 use std::sync::Arc;
 
@@ -46,6 +47,8 @@ pub struct UpdateCredentialsBody {
     display_name: Option<String>,
     #[serde(rename = "note")]
     bio: Option<String>,
+    #[serde(rename = "locked")]
+    manually_approves_followers: Option<bool>,
     bot: Option<bool>,
     is_cat: Option<bool>,
 }
@@ -104,6 +107,12 @@ pub async fn http_patch_update_credentials(
             user.bio = Some(bio.clone());
             updated_user.bio = Some(Some(bio));
         }
+    }
+
+    if let Some(manually_approves_followers) = body.manually_approves_followers {
+        there_are_changes = true;
+        user.manually_approves_followers = manually_approves_followers;
+        updated_user.manually_approves_followers = Some(manually_approves_followers);
     }
 
     if let Some(bot) = body.bot {
@@ -310,7 +319,7 @@ pub async fn http_post_unfollow(
     }
 }
 
-// https://docs.joinmastodon.org/methods/accounts/#remove_from_followers
+// https://docs.joinmastodon.org/methods/accoufnts/#remove_from_followers
 pub async fn http_post_remove_from_followers(
     state: Data<Arc<AppState>>,
     Path(id): Path<String>,
@@ -324,7 +333,7 @@ pub async fn http_post_remove_from_followers(
     if let Some(to) = to {
         if to.follows(&by, &state.db_pool).await? || to.wants_to_follow(&by, &state.db_pool).await?
         {
-            follows::remove_from_followers(&by, &to, &state).await?;
+            follows::remove_from_followers(&by, &to, None, &state).await?;
         }
 
         Ok(Json(Relationship {
@@ -436,6 +445,7 @@ pub fn accounts(state: &Arc<AppState>) -> Router<Arc<AppState>> {
     Router::new()
         .merge(bookmarks::bookmarks(state))
         .merge(favourites::favourites(state))
+        .merge(follow_requests::follow_requests(state))
         .route(
             "/api/v1/accounts/verify_credentials",
             get(http_get_verify_credentials

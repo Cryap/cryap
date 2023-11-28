@@ -2,7 +2,7 @@ use diesel::{dsl::sql, prelude::*, result::Error::NotFound, sql_types::Bool};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
 use crate::{
-    models::Post,
+    models::{user_follow_requests::UserFollowRequest, Post},
     paginate,
     pagination::Pagination,
     schema::{bookmarks, post_like, posts, user_follow_requests, user_followers, users},
@@ -205,6 +205,14 @@ impl User {
         let query = paginate!(query, users::id, pagination);
 
         Ok(query.load::<Self>(&mut db_pool.get().await?).await?)
+    }
+
+    pub async fn follow_requests(
+        &self,
+        pagination: Pagination,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Vec<Self>> {
+        UserFollowRequest::by_user(&self.id, pagination, db_pool).await
     }
 
     pub async fn reached_inboxes(
