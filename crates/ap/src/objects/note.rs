@@ -221,10 +221,8 @@ impl Object for ApNote {
             cc,
             quote_uri: quote.clone(), // AP moment
             quote_url: quote.clone(),
-            published: Some(DateTime::<Utc>::from_utc(published, Utc)),
-            updated: self
-                .updated
-                .map(|updated| DateTime::<Utc>::from_utc(updated, Utc)),
+            published: Some(published),
+            updated: self.updated,
         })
     }
 
@@ -275,11 +273,8 @@ impl Object for ApNote {
             quote,
             sensitive: false,
             ap_id: json.id.to_string(),
-            published: json
-                .updated
-                .map(|f| f.naive_utc())
-                .unwrap_or(Utc::now().naive_utc()),
-            updated: Some(Utc::now().naive_utc()),
+            published: json.updated.unwrap_or(Utc::now()),
+            updated: Some(Utc::now()),
         };
 
         let post_db = insert_into(posts::table)

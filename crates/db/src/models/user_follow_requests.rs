@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use diesel::{prelude::*, result::Error::NotFound};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
@@ -15,7 +16,7 @@ pub struct UserFollowRequest {
     pub actor_id: DbId,
     pub follower_id: DbId,
     pub ap_id: Option<String>,
-    pub published: chrono::NaiveDateTime,
+    pub published: DateTime<Utc>,
 }
 
 #[derive(Clone, Insertable, AsChangeset)]

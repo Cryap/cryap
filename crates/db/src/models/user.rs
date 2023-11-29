@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use diesel::{dsl::sql, prelude::*, result::Error::NotFound, sql_types::Bool};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
@@ -30,8 +31,8 @@ pub struct User {
     pub admin: bool,
     pub public_key: String,
     pub private_key: Option<String>,
-    pub published: chrono::NaiveDateTime,
-    pub updated: Option<chrono::NaiveDateTime>,
+    pub published: DateTime<Utc>,
+    pub updated: Option<DateTime<Utc>>,
     pub manually_approves_followers: bool,
     pub is_cat: bool,
     pub bot: bool,
@@ -46,7 +47,7 @@ pub struct UserUpdate {
     pub bio: Option<Option<String>>,
     pub password_encrypted: Option<Option<String>>,
     pub admin: Option<bool>,
-    pub updated: Option<Option<chrono::NaiveDateTime>>,
+    pub updated: Option<Option<DateTime<Utc>>>,
     pub manually_approves_followers: Option<bool>,
     pub is_cat: Option<bool>,
     pub bot: Option<bool>,

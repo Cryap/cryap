@@ -106,8 +106,8 @@ impl Object for ApUser {
             outbox: Url::parse(&self.outbox_uri)?,
             public_key: self.public_key(),
             summary: bio.or(Some("".to_string())),
-            updated: updated.map(|f| DateTime::<Utc>::from_utc(f, Utc)),
-            published: Some(DateTime::<Utc>::from_utc(published, Utc)),
+            updated,
+            published: Some(published),
             endpoints: None,
             manually_approves_followers: self.manually_approves_followers,
             is_cat: self.is_cat,
@@ -154,11 +154,8 @@ impl Object for ApUser {
             admin: false,
             public_key: json.public_key.public_key_pem,
             private_key: None,
-            published: json
-                .updated
-                .map(|f| f.naive_utc())
-                .unwrap_or(Utc::now().naive_utc()),
-            updated: Some(Utc::now().naive_utc()),
+            published: json.updated.unwrap_or(Utc::now()),
+            updated: Some(Utc::now()),
             manually_approves_followers: json.manually_approves_followers,
             is_cat: json.is_cat,
             bot: json.kind == UserTypes::Service || json.kind == UserTypes::Application,

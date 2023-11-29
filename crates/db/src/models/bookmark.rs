@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 
 use crate::{schema::bookmarks, types::DbId};
@@ -8,5 +9,5 @@ pub struct Bookmark {
     pub id: DbId,
     pub post_id: DbId,
     pub actor_id: DbId,
-    pub published: chrono::NaiveDateTime,
+    pub published: DateTime<Utc>,
 }

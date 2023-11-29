@@ -1,4 +1,4 @@
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use diesel::{insert_into, prelude::*, result::Error::NotFound};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
@@ -13,7 +13,7 @@ pub struct Application {
     pub redirect_url: String,
     pub client_id: String,
     pub client_secret: String,
-    pub published: chrono::NaiveDateTime,
+    pub published: DateTime<Utc>,
 }
 
 impl Application {
@@ -30,7 +30,7 @@ impl Application {
             redirect_url,
             client_id: random_string(32),
             client_secret: random_string(32),
-            published: Utc::now().naive_utc(),
+            published: Utc::now(),
         };
 
         Ok(insert_into(applications::table)

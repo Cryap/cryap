@@ -14,7 +14,7 @@ diesel = { version = "2.1.0", features = [
   "chrono",
   "nightly-error-messages",
 ] }
-diesel-async = { version = "0.3.1", features = ["deadpool"] }
+diesel-async = { version = "0.4.1", features = ["deadpool"] }
 diesel_async_migrations = { git = "https://github.com/niroco/diesel_async_migrations" }
 anyhow = "1.0.71"
 diesel-derive-newtype = "2.0.0-rc.0"

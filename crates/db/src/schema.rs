@@ -24,7 +24,7 @@ diesel::table! {
         client_id -> Bpchar,
         #[max_length = 32]
         client_secret -> Bpchar,
-        published -> Timestamp,
+        published -> Timestamptz,
     }
 }
 
@@ -36,7 +36,7 @@ diesel::table! {
         post_id -> Bpchar,
         #[max_length = 27]
         actor_id -> Bpchar,
-        published -> Timestamp,
+        published -> Timestamptz,
     }
 }
 
@@ -54,7 +54,7 @@ diesel::table! {
         #[max_length = 27]
         post_id -> Nullable<Bpchar>,
         notification_type -> NotificationType,
-        published -> Timestamp,
+        published -> Timestamptz,
     }
 }
 
@@ -72,7 +72,7 @@ diesel::table! {
         #[max_length = 27]
         actor_id -> Bpchar,
         visibility -> Visibility,
-        published -> Timestamp,
+        published -> Timestamptz,
     }
 }
 
@@ -84,7 +84,7 @@ diesel::table! {
         post_id -> Bpchar,
         #[max_length = 27]
         actor_id -> Bpchar,
-        published -> Timestamp,
+        published -> Timestamptz,
     }
 }
 
@@ -116,8 +116,8 @@ diesel::table! {
         sensitive -> Bool,
         #[max_length = 27]
         in_reply -> Nullable<Bpchar>,
-        published -> Timestamp,
-        updated -> Nullable<Timestamp>,
+        published -> Timestamptz,
+        updated -> Nullable<Timestamptz>,
         #[max_length = 200]
         url -> Varchar,
         #[max_length = 27]
@@ -147,7 +147,7 @@ diesel::table! {
         token -> Bpchar,
         #[max_length = 27]
         user_id -> Bpchar,
-        published -> Timestamp,
+        published -> Timestamptz,
         #[max_length = 27]
         application_id -> Nullable<Bpchar>,
     }
@@ -161,7 +161,7 @@ diesel::table! {
         follower_id -> Bpchar,
         #[max_length = 200]
         ap_id -> Nullable<Varchar>,
-        published -> Timestamp,
+        published -> Timestamptz,
     }
 }
 
@@ -173,7 +173,7 @@ diesel::table! {
         follower_id -> Bpchar,
         #[max_length = 200]
         ap_id -> Nullable<Varchar>,
-        published -> Timestamp,
+        published -> Timestamptz,
     }
 }
 
@@ -203,8 +203,8 @@ diesel::table! {
         admin -> Bool,
         public_key -> Text,
         private_key -> Nullable<Text>,
-        published -> Timestamp,
-        updated -> Nullable<Timestamp>,
+        published -> Timestamptz,
+        updated -> Nullable<Timestamptz>,
         manually_approves_followers -> Bool,
         is_cat -> Bool,
         bot -> Bool,

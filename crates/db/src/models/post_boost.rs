@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use chrono::{DateTime, Utc};
 use diesel::{prelude::*, result::Error::NotFound};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
@@ -16,7 +17,7 @@ pub struct PostBoost {
     pub post_id: DbId,
     pub actor_id: DbId,
     pub visibility: DbVisibility,
-    pub published: chrono::NaiveDateTime,
+    pub published: DateTime<Utc>,
 }
 
 impl PostBoost {

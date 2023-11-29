@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use chrono::{DateTime, Utc};
 use db::{models::Notification as DbNotification, types::DbNotificationType};
 use futures::future::join_all;
 use serde::Serialize;
@@ -16,7 +17,7 @@ pub struct Notification {
     pub status: Option<Status>,
     #[serde(rename = "type")]
     pub notification_type: DbNotificationType,
-    pub created_at: chrono::NaiveDateTime,
+    pub created_at: DateTime<Utc>,
 }
 
 impl Notification {

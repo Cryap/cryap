@@ -58,7 +58,7 @@ impl ActivityHandler for Like {
                 actor_id: actor.id.clone(),
                 post_id: post.id.clone(),
                 ap_id: self.id.to_string(),
-                published: Utc::now().naive_utc(),
+                published: Utc::now(),
             }])
             .on_conflict((post_like::actor_id, post_like::post_id))
             .do_nothing()

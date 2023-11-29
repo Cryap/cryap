@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use diesel::{delete, insert_into, prelude::*, result::Error::NotFound};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
@@ -16,7 +16,7 @@ pub struct Session {
     pub id: DbId,
     pub token: String,
     pub user_id: DbId,
-    pub published: chrono::NaiveDateTime,
+    pub published: DateTime<Utc>,
     pub application_id: Option<DbId>,
 }
 
@@ -30,7 +30,7 @@ impl Session {
             id: DbId::default(),
             token: random_string(60),
             user_id,
-            published: Utc::now().naive_utc(),
+            published: Utc::now(),
             application_id,
         };
 

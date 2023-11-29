@@ -121,7 +121,7 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
         content, // validation should be performed before post() call
         in_reply: options.in_reply.map(|p| p.id),
         sensitive: options.sensitive,
-        published: Utc::now().naive_utc(),
+        published: Utc::now(),
         local_only: options.local_only,
         visibility: options.visibility,
         content_warning: options.content_warning,
@@ -194,7 +194,7 @@ pub async fn boost(
         post_id: post.id.clone(),
         actor_id: user.id.clone(),
         visibility,
-        published: Utc::now().naive_utc(),
+        published: Utc::now(),
     };
 
     if !post.local_only {
@@ -253,7 +253,7 @@ pub async fn like(user: &User, post: &Post, data: &Data<Arc<AppState>>) -> anyho
             actor_id: user.id.clone(),
             post_id: post.id.clone(),
             ap_id: id.to_string(),
-            published: Utc::now().naive_utc(),
+            published: Utc::now(),
         }])
         .on_conflict((post_like::actor_id, post_like::post_id))
         .do_nothing()

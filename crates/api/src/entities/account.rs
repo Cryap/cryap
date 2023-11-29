@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use db::{
     models::User,
     schema::{user_follow_requests, user_followers},
@@ -32,7 +32,7 @@ pub struct Account {
     pub display_name: String,
     pub locked: bool,
     pub bot: bool,
-    pub created_at: NaiveDateTime,
+    pub created_at: DateTime<Utc>,
     pub note: String,
     pub followers_count: u32,
     pub following_count: u32,

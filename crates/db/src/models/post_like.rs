@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 
 use crate::{schema::post_like, types::DbId};
@@ -8,5 +9,5 @@ pub struct PostLike {
     pub ap_id: String,
     pub post_id: DbId,
     pub actor_id: DbId,
-    pub published: chrono::NaiveDateTime,
+    pub published: DateTime<Utc>,
 }

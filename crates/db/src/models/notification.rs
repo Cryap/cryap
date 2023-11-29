@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use diesel::{delete, dsl::not, insert_into, prelude::*, result::Error::NotFound};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
@@ -19,7 +19,7 @@ pub struct Notification {
     pub receiver_id: DbId,
     pub post_id: Option<DbId>,
     pub notification_type: DbNotificationType,
-    pub published: chrono::NaiveDateTime,
+    pub published: DateTime<Utc>,
 }
 
 impl Notification {
@@ -36,7 +36,7 @@ impl Notification {
             receiver_id,
             post_id,
             notification_type,
-            published: Utc::now().naive_utc(),
+            published: Utc::now(),
         };
 
         Ok(insert_into(notifications::table)

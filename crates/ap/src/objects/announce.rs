@@ -68,7 +68,7 @@ impl Object for ApAnnounce {
             id: ObjectId::from(Url::parse(&self.ap_id)?),
             actor: ObjectId::<ApUser>::from(Url::parse(&actor.ap_id)?),
             object: ObjectId::<ApNote>::from(Url::parse(&self.post(&data.db_pool).await?.ap_id)?),
-            published: Some(DateTime::<Utc>::from_utc(self.published, Utc)),
+            published: Some(self.published),
             to,
             cc,
         })
@@ -99,7 +99,7 @@ impl Object for ApAnnounce {
             post_id: post.id.clone(),
             ap_id: json.id.to_string(),
             visibility: parse_to_cc(&json.to, &json.cc, Url::parse(&actor.followers_uri)?),
-            published: Utc::now().naive_utc(),
+            published: Utc::now(),
         };
 
         let boost_db = insert_into(post_boost::table)

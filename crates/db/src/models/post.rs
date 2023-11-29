@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use diesel::{delete, dsl::sql, insert_into, prelude::*, result::Error::NotFound, sql_types::Bool};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
@@ -24,8 +24,8 @@ pub struct Post {
     pub content: String,
     pub sensitive: bool,
     pub in_reply: Option<DbId>,
-    pub published: chrono::NaiveDateTime,
-    pub updated: Option<chrono::NaiveDateTime>,
+    pub published: DateTime<Utc>,
+    pub updated: Option<DateTime<Utc>>,
     pub url: String,
     pub quote: Option<DbId>,
     pub visibility: DbVisibility,
@@ -163,7 +163,7 @@ impl Post {
             id: DbId::default(),
             actor_id: user.id.clone(),
             post_id: self.id.clone(),
-            published: Utc::now().naive_utc(),
+            published: Utc::now(),
         };
 
         insert_into(bookmarks::dsl::bookmarks)

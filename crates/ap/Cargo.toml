@@ -12,7 +12,7 @@ axum = { version = "0.6.18", features = [
   "headers",
   "macros",
 ] }
-diesel-async = { version = "0.3.1", features = ["postgres", "deadpool"] }
+diesel-async = { version = "0.4.1", features = ["postgres", "deadpool"] }
 hyper = { version = "0.14.26", features = ["full"] }
 lazy_static = "1.4.0"
 log = "0.4.18"
@@ -33,7 +33,7 @@ diesel = { version = "2.1.0", features = [
 chrono = { version = "0.4.26", features = ["serde"] }
 time = { version = "0.3.23" }
 serde_json = "1.0.97"
-activitypub_federation = { git = "https://github.com/LemmyNet/activitypub-federation-rust.git", default-features = false, features = [
+activitypub_federation = { version = "=0.5.0-beta.1", default-features = false, features = [
   "axum",
 ] }
 async-trait = "0.1.68"
