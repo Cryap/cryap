@@ -85,13 +85,13 @@ impl Post {
 
     pub async fn is_liked_by(
         &self,
-        user: &User,
+        user_id: &DbId,
         db_pool: &Pool<AsyncPgConnection>,
     ) -> anyhow::Result<bool> {
         let result = post_like::table
             .select(sql::<Bool>("true"))
             .filter(post_like::post_id.eq(&self.id))
-            .filter(post_like::actor_id.eq(&user.id))
+            .filter(post_like::actor_id.eq(user_id))
             .first::<bool>(&mut db_pool.get().await?)
             .await;
         match result {
@@ -103,13 +103,13 @@ impl Post {
 
     pub async fn bookmarked_by(
         &self,
-        user: &User,
+        user_id: &DbId,
         db_pool: &Pool<AsyncPgConnection>,
     ) -> anyhow::Result<bool> {
         let result = bookmarks::table
             .select(sql::<Bool>("true"))
             .filter(bookmarks::post_id.eq(&self.id))
-            .filter(bookmarks::actor_id.eq(&user.id))
+            .filter(bookmarks::actor_id.eq(user_id))
             .first::<bool>(&mut db_pool.get().await?)
             .await;
         match result {
@@ -121,12 +121,12 @@ impl Post {
 
     pub async fn boost_by(
         &self,
-        user: &User,
+        user_id: &DbId,
         db_pool: &Pool<AsyncPgConnection>,
     ) -> anyhow::Result<Option<PostBoost>> {
         let boost = post_boost::table
             .filter(post_boost::post_id.eq(&self.id))
-            .filter(post_boost::actor_id.eq(&user.id))
+            .filter(post_boost::actor_id.eq(user_id))
             .first::<PostBoost>(&mut db_pool.get().await?)
             .await;
         match boost {

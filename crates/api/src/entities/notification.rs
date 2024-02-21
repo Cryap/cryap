@@ -33,7 +33,7 @@ impl Notification {
                 Some(_) => Some(
                     Status::build(
                         notification.post(&state.db_pool).await?.unwrap(), // Panic safety: post existence is checked before
-                        Some(&notification.actor(&state.db_pool).await?),
+                        Some(&notification.actor_id),
                         state,
                     )
                     .await?,

@@ -48,7 +48,7 @@ pub struct Person {
     pub public_key: PublicKey,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub endpoints: Option<Endpoints>,
-    #[serde(default = "default_false")]
+    #[serde(default)]
     pub manually_approves_followers: bool,
 
     /// displayname
@@ -58,12 +58,8 @@ pub struct Person {
     pub published: Option<DateTime<Utc>>,
     pub updated: Option<DateTime<Utc>>,
 
-    #[serde(default = "default_false")]
+    #[serde(default)]
     pub is_cat: bool,
-}
-
-fn default_false() -> bool {
-    false
 }
 
 #[async_trait::async_trait]

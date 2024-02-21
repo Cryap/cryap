@@ -45,6 +45,25 @@ pub async fn accessible_for(
     }
 }
 
+pub async fn boost_accessible_for(
+    boost: &PostBoost,
+    user: Option<&User>,
+    db_pool: &Pool<AsyncPgConnection>,
+) -> anyhow::Result<bool> {
+    if let Some(user) = user {
+        match boost.visibility {
+            DbVisibility::Public | DbVisibility::Unlisted => Ok(true),
+            DbVisibility::Private => Ok(user.follows_by_id(&boost.actor_id, db_pool).await?),
+            DbVisibility::Direct => Ok(false),
+        }
+    } else {
+        match boost.visibility {
+            DbVisibility::Public | DbVisibility::Unlisted => Ok(true),
+            _ => Ok(false),
+        }
+    }
+}
+
 pub async fn post_or_boost_by_id(
     id: &DbId,
     db_pool: &Pool<AsyncPgConnection>,

@@ -8,7 +8,7 @@ use db::{
         post_mention::{dsl as post_mention_dsl, dsl::post_mention},
         users::dsl::users,
     },
-    types::DbVisibility,
+    types::{DbId, DbVisibility},
 };
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
@@ -70,7 +70,7 @@ pub struct Status {
 impl Status {
     pub async fn build(
         post: Post,
-        user: Option<&User>,
+        user_id: Option<&DbId>,
         state: &Arc<AppState>,
     ) -> anyhow::Result<Self> {
         let mut conn = state.db_pool.get().await?;
@@ -102,12 +102,12 @@ impl Status {
             None => None,
         };
 
-        let relationship = if let Some(user) = user {
+        let relationship = if let Some(user_id) = user_id {
             Some(StatusRelationship {
-                favourited: post.is_liked_by(user, &state.db_pool).await?,
-                reblogged: post.boost_by(user, &state.db_pool).await?.is_some(),
+                favourited: post.is_liked_by(user_id, &state.db_pool).await?,
+                reblogged: post.boost_by(user_id, &state.db_pool).await?.is_some(),
                 muted: false,
-                bookmarked: post.bookmarked_by(user, &state.db_pool).await?,
+                bookmarked: post.bookmarked_by(user_id, &state.db_pool).await?,
                 pinned: false,
             })
         } else {
@@ -154,11 +154,11 @@ impl Status {
 
     pub async fn build_from_boost(
         boost: PostBoost,
-        user: Option<&User>, // TODO
+        user_id: Option<&DbId>,
         state: &Arc<AppState>,
     ) -> anyhow::Result<Self> {
         let post = boost.post(&state.db_pool).await?;
-        let status = Self::build(post, user, state).await?;
+        let status = Self::build(post, user_id, state).await?;
 
         Ok(Status {
             id: boost.id.to_string(),
@@ -174,13 +174,13 @@ impl Status {
 
     pub async fn build_from_vec(
         posts: Vec<Post>,
-        user: Option<&User>,
+        user_id: Option<&DbId>,
         state: &Arc<AppState>,
     ) -> anyhow::Result<Vec<Self>> {
         join_all(
             posts
                 .into_iter()
-                .map(|post| async { Self::build(post, user, state).await }),
+                .map(|post| async { Self::build(post, user_id, state).await }),
         )
         .await
         .into_iter()

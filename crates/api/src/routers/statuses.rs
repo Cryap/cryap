@@ -83,7 +83,11 @@ pub async fn http_get_get(
     if let Some(post) = post {
         match boost {
             Some(boost) => {
-                Ok(Json(Status::build_from_boost(boost, None, &state).await?).into_response())
+                if posts::boost_accessible_for(&boost, user.as_ref(), &state.db_pool).await? {
+                    Ok(Json(Status::build_from_boost(boost, None, &state).await?).into_response())
+                } else {
+                    Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
+                }
             },
             None => {
                 if posts::accessible_for(&post, user.as_ref(), &state.db_pool).await? {
@@ -113,8 +117,21 @@ pub async fn http_get_favourited_by(
     };
 
     if let Some(post) = post {
-        if boost.is_none() && !posts::accessible_for(&post, user.as_ref(), &state.db_pool).await? {
-            return Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response());
+        match boost {
+            Some(boost) => {
+                if !posts::boost_accessible_for(&boost, user.as_ref(), &state.db_pool).await? {
+                    return Ok(
+                        ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()
+                    );
+                }
+            },
+            None => {
+                if !posts::accessible_for(&post, user.as_ref(), &state.db_pool).await? {
+                    return Ok(
+                        ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()
+                    );
+                }
+            },
         }
 
         let accounts = Account::build_from_vec(
@@ -157,8 +174,21 @@ pub async fn http_get_reblogged_by(
     };
 
     if let Some(post) = post {
-        if boost.is_none() && !posts::accessible_for(&post, user.as_ref(), &state.db_pool).await? {
-            return Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response());
+        match boost {
+            Some(boost) => {
+                if !posts::boost_accessible_for(&boost, user.as_ref(), &state.db_pool).await? {
+                    return Ok(
+                        ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()
+                    );
+                }
+            },
+            None => {
+                if !posts::accessible_for(&post, user.as_ref(), &state.db_pool).await? {
+                    return Ok(
+                        ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()
+                    );
+                }
+            },
         }
 
         let accounts = Account::build_from_vec(
@@ -198,19 +228,33 @@ pub async fn http_post_favourite(
     let (post, boost) = posts::post_or_boost_by_id(&id, &state.db_pool).await?;
 
     if let Some(post) = post {
-        if boost.is_none() && !posts::accessible_for(&post, Some(&user), &state.db_pool).await? {
-            return Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response());
+        match &boost {
+            Some(boost) => {
+                if !posts::boost_accessible_for(boost, Some(&user), &state.db_pool).await? {
+                    return Ok(
+                        ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()
+                    );
+                }
+            },
+            None => {
+                if !posts::accessible_for(&post, Some(&user), &state.db_pool).await? {
+                    return Ok(
+                        ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()
+                    );
+                }
+            },
         }
 
-        if !post.is_liked_by(&user, &state.db_pool).await? {
+        if !post.is_liked_by(&user.id, &state.db_pool).await? {
             posts::like(&user, &post, &state).await?;
         }
 
         match boost {
-            Some(boost) => {
-                Ok(Json(Status::build_from_boost(boost, None, &state).await?).into_response())
-            },
-            None => Ok(Json(Status::build(post, None, &state).await?).into_response()),
+            Some(boost) => Ok(
+                Json(Status::build_from_boost(boost, Some(&user.id), &state).await?)
+                    .into_response(),
+            ),
+            None => Ok(Json(Status::build(post, Some(&user.id), &state).await?).into_response()),
         }
     } else {
         Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
@@ -229,11 +273,24 @@ pub async fn http_post_unfavourite(
     let (post, boost) = posts::post_or_boost_by_id(&id, &state.db_pool).await?;
 
     if let Some(post) = post {
-        if boost.is_none() && !posts::accessible_for(&post, Some(&user), &state.db_pool).await? {
-            return Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response());
+        match &boost {
+            Some(boost) => {
+                if !posts::boost_accessible_for(boost, Some(&user), &state.db_pool).await? {
+                    return Ok(
+                        ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()
+                    );
+                }
+            },
+            None => {
+                if !posts::accessible_for(&post, Some(&user), &state.db_pool).await? {
+                    return Ok(
+                        ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()
+                    );
+                }
+            },
         }
 
-        if post.is_liked_by(&user, &state.db_pool).await? {
+        if post.is_liked_by(&user.id, &state.db_pool).await? {
             posts::unlike(&user, &post, &state).await?;
         }
 
@@ -266,8 +323,21 @@ pub async fn http_post_reblog(
     let (post, boost) = posts::post_or_boost_by_id(&id, &state.db_pool).await?;
 
     if let Some(post) = post {
-        if boost.is_none() && !posts::accessible_for(&post, Some(&user), &state.db_pool).await? {
-            return Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response());
+        match boost {
+            Some(boost) => {
+                if !posts::boost_accessible_for(&boost, Some(&user), &state.db_pool).await? {
+                    return Ok(
+                        ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()
+                    );
+                }
+            },
+            None => {
+                if !posts::accessible_for(&post, Some(&user), &state.db_pool).await? {
+                    return Ok(
+                        ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()
+                    );
+                }
+            },
         }
 
         if post.visibility != DbVisibility::Public && post.visibility != DbVisibility::Unlisted {
@@ -289,7 +359,7 @@ pub async fn http_post_reblog(
             .into_response());
         }
 
-        let boost = if let Some(boost) = post.boost_by(&user, &state.db_pool).await? {
+        let boost = if let Some(boost) = post.boost_by(&user.id, &state.db_pool).await? {
             boost
         } else {
             posts::boost(&user, &post, visibility, &state).await?
@@ -313,8 +383,21 @@ pub async fn http_post_bookmark(
     let (post, boost) = posts::post_or_boost_by_id(&id, &state.db_pool).await?;
 
     if let Some(post) = post {
-        if boost.is_none() && !posts::accessible_for(&post, Some(&user), &state.db_pool).await? {
-            return Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response());
+        match &boost {
+            Some(boost) => {
+                if !posts::boost_accessible_for(boost, Some(&user), &state.db_pool).await? {
+                    return Ok(
+                        ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()
+                    );
+                }
+            },
+            None => {
+                if !posts::accessible_for(&post, Some(&user), &state.db_pool).await? {
+                    return Ok(
+                        ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()
+                    );
+                }
+            },
         }
 
         post.bookmark(&user, &state.db_pool).await?;
@@ -342,8 +425,21 @@ pub async fn http_post_unbookmark(
     let (post, boost) = posts::post_or_boost_by_id(&id, &state.db_pool).await?;
 
     if let Some(post) = post {
-        if boost.is_none() && !posts::accessible_for(&post, Some(&user), &state.db_pool).await? {
-            return Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response());
+        match &boost {
+            Some(boost) => {
+                if !posts::boost_accessible_for(boost, Some(&user), &state.db_pool).await? {
+                    return Ok(
+                        ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()
+                    );
+                }
+            },
+            None => {
+                if !posts::accessible_for(&post, Some(&user), &state.db_pool).await? {
+                    return Ok(
+                        ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()
+                    );
+                }
+            },
         }
 
         post.unbookmark(&user, &state.db_pool).await?;

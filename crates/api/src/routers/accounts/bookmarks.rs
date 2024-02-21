@@ -24,7 +24,7 @@ pub async fn http_get_bookmarks(
     let posts = Status::build_from_vec(
         user.bookmarked_posts(pagination.into(), &state.db_pool)
             .await?,
-        Some(&user),
+        Some(&user.id),
         &state,
     )
     .await?;

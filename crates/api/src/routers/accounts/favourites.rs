@@ -23,7 +23,7 @@ pub async fn http_get_favourites(
     let user = session.user(&state.db_pool).await?;
     let posts = Status::build_from_vec(
         user.liked_posts(pagination.into(), &state.db_pool).await?,
-        Some(&user),
+        Some(&user.id),
         &state,
     )
     .await?;
