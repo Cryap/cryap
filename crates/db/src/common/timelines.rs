@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use diesel::{
-    dsl::{not, sql},
+    dsl::sql,
     prelude::*,
     result::Error::NotFound,
     sql_query,
@@ -12,7 +12,7 @@ use crate::{
     models::{Post, PostBoost},
     paginate,
     pagination::Pagination,
-    schema::{posts, sql_types::Visibility, user_followers},
+    schema::{post_mention, posts, sql_types::Visibility, user_followers},
     types::{DbId, DbVisibility},
 };
 
@@ -127,27 +127,81 @@ pub async fn get_user_posts(
 ) -> anyhow::Result<Vec<TimelineEntry>> {
     let is_follower = follows(user_id, actor_id, db_pool).await?;
     if exclude_boosts {
-        let mut query = posts::table
-            .filter(posts::author.eq(user_id))
-            .select(posts::all_columns)
-            .into_boxed();
+        if let Some(actor_id) = actor_id {
+            let mut query = if is_follower {
+                posts::table
+                    .filter(posts::author.eq(user_id))
+                    .select(posts::all_columns)
+                    .left_join(
+                        post_mention::table.on(posts::id
+                            .eq(post_mention::post_id)
+                            .and(post_mention::mentioned_user_id.eq(actor_id))),
+                    )
+                    .filter(
+                        posts::visibility
+                            .ne(DbVisibility::Direct)
+                            .or(posts::visibility
+                                .eq(DbVisibility::Private)
+                                .and(post_mention::post_id.is_not_null()))
+                            .or(posts::visibility
+                                .eq(DbVisibility::Direct)
+                                .and(post_mention::post_id.is_not_null())),
+                    )
+                    .into_boxed()
+            } else {
+                posts::table
+                    .filter(posts::author.eq(user_id))
+                    .select(posts::all_columns)
+                    .left_join(
+                        post_mention::table.on(posts::id
+                            .eq(post_mention::post_id)
+                            .and(post_mention::mentioned_user_id.eq(actor_id))),
+                    )
+                    .filter(
+                        posts::visibility
+                            .ne(DbVisibility::Private)
+                            .and(posts::visibility.ne(DbVisibility::Direct))
+                            .or(posts::visibility
+                                .eq(DbVisibility::Private)
+                                .and(post_mention::post_id.is_not_null()))
+                            .or(posts::visibility
+                                .eq(DbVisibility::Direct)
+                                .and(post_mention::post_id.is_not_null())),
+                    )
+                    .into_boxed()
+            };
 
-        if exclude_replies {
-            query = query.filter(posts::in_reply.is_null());
+            if exclude_replies {
+                query = query.filter(posts::in_reply.is_null());
+            }
+
+            query = paginate!(query, posts::id, pagination).order_by(posts::published.desc());
+
+            Ok(query
+                .load::<Post>(&mut db_pool.get().await?)
+                .await?
+                .into_iter()
+                .map(TimelineEntry::from)
+                .collect())
+        } else {
+            let mut query = posts::table
+                .filter(posts::author.eq(user_id))
+                .select(posts::all_columns)
+                .into_boxed();
+
+            if exclude_replies {
+                query = query.filter(posts::in_reply.is_null());
+            }
+
+            query = paginate!(query, posts::id, pagination).order_by(posts::published.desc());
+
+            Ok(query
+                .load::<Post>(&mut db_pool.get().await?)
+                .await?
+                .into_iter()
+                .map(TimelineEntry::from)
+                .collect())
         }
-
-        if !is_follower {
-            query = query.filter(not(posts::visibility.eq(DbVisibility::Private)));
-        }
-
-        query = paginate!(query, posts::id, pagination);
-
-        Ok(query
-            .load::<Post>(&mut db_pool.get().await?)
-            .await?
-            .into_iter()
-            .map(TimelineEntry::from)
-            .collect())
     } else {
         let query = format!(
             "
