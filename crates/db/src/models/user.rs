@@ -1,8 +1,9 @@
 use chrono::{DateTime, Utc};
-use diesel::{dsl::sql, prelude::*, result::Error::NotFound, sql_types::Bool};
+use diesel::{dsl::sql, prelude::*, query_dsl::QueryDsl, result::Error::NotFound, sql_types::Bool};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
 use crate::{
+    common::timelines::{self, TimelineEntry},
     models::{user_follow_requests::UserFollowRequest, Post},
     paginate,
     pagination::Pagination,
@@ -132,6 +133,25 @@ impl User {
             .execute(&mut db_pool.get().await?)
             .await?;
         Ok(())
+    }
+
+    pub async fn posts(
+        &self,
+        pagination: Pagination,
+        actor_id: Option<&DbId>,
+        exclude_boosts: bool,
+        exclude_replies: bool,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Vec<TimelineEntry>> {
+        timelines::get_user_posts(
+            &self.id,
+            pagination,
+            actor_id,
+            exclude_boosts,
+            exclude_replies,
+            db_pool,
+        )
+        .await
     }
 
     pub async fn follows_by_id(

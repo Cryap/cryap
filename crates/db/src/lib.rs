@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+pub mod common;
 pub mod migrations;
 pub mod models;
 pub mod pagination;

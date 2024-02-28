@@ -25,9 +25,9 @@ use serde::Deserialize;
 use web::{errors::AppError, AppState};
 
 use crate::{
-    auth_middleware::auth_middleware,
+    auth_middleware::{auth_middleware, optional_auth_middleware},
     common::{follows, users},
-    entities::{Account, Relationship},
+    entities::{Account, Relationship, Status},
     error::ApiError,
 };
 
@@ -168,6 +168,68 @@ pub async fn http_get_get(
     match user {
         Some(user) => Ok(Json(Account::build(user, &state, false).await?).into_response()),
         None => Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct GetStatusesQuery {
+    // #[serde(default)]
+    // only_media: bool, // TODO
+    #[serde(default)]
+    exclude_replies: bool,
+    #[serde(default)]
+    exclude_reblogs: bool,
+    #[serde(default)]
+    pinned: bool, // TODO
+}
+
+// TODO: Fully implement https://docs.joinmastodon.org/methods/accounts/#statuses
+pub async fn http_get_statuses(
+    state: Data<Arc<AppState>>,
+    Extension(session): Extension<Option<Session>>,
+    Path(id): Path<String>,
+    Query(pagination): Query<PaginationQuery>,
+    Query(query): Query<GetStatusesQuery>,
+) -> Result<impl IntoResponse, AppError> {
+    let id = DbId::from(id);
+    let user = User::by_id(&id, &state.db_pool).await?;
+
+    if let Some(user) = user {
+        if query.pinned {
+            return Ok(Json::<Vec<()>>(vec![]).into_response());
+        }
+
+        let actor_id = session.map(|session| session.user_id);
+        let timeline = Status::build_timeline(
+            user.posts(
+                pagination.into(),
+                actor_id.as_ref(),
+                query.exclude_reblogs,
+                query.exclude_replies,
+                &state.db_pool,
+            )
+            .await?,
+            actor_id.as_ref(),
+            &state,
+        )
+        .await?;
+
+        if timeline.is_empty() {
+            Ok(Json(timeline).into_response())
+        } else {
+            Ok((
+                [(
+                    header::LINK, format!(
+                        "<https://{}/api/v1/accounts/{}/statuses?max_id={}>; rel=\"next\", <https://{}/api/v1/accounts/{}/statuses?min_id={}>; rel\"prev\"",
+                        state.config.web.domain, id, timeline.last().unwrap().id.clone(),
+                        state.config.web.domain, id, timeline.first().unwrap().id.clone()
+                    )
+                )],
+                Json(timeline),
+            ).into_response())
+        }
+    } else {
+        Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
     }
 }
 
@@ -460,6 +522,13 @@ pub fn accounts(state: &Arc<AppState>) -> Router<Arc<AppState>> {
         )
         .route("/api/v1/accounts/lookup", get(http_get_lookup))
         .route("/api/v1/accounts/:id", get(http_get_get))
+        .route(
+            "/api/v1/accounts/:id/statuses",
+            get(http_get_statuses.layer(from_fn_with_state(
+                Arc::clone(state),
+                optional_auth_middleware,
+            ))),
+        )
         .route("/api/v1/accounts/:id/followers", get(http_get_followers))
         .route("/api/v1/accounts/:id/following", get(http_get_following))
         .route(

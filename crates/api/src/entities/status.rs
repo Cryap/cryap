@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use db::{
+    common::timelines::TimelineEntry,
     models::{Post, PostBoost, User},
     schema::{
         post_boost::{dsl as post_boost_dsl, dsl::post_boost},
@@ -172,6 +173,30 @@ impl Status {
         })
     }
 
+    pub async fn build_from_timeline_entry(
+        timeline_entry: TimelineEntry,
+        user_id: Option<&DbId>,
+        state: &Arc<AppState>,
+    ) -> anyhow::Result<Self> {
+        match timeline_entry {
+            TimelineEntry::Post(post) => Self::build(post, user_id, state).await,
+            TimelineEntry::Boost(boost, post) => {
+                let status = Self::build(post, user_id, state).await?;
+                Ok(Status {
+                    id: boost.id.to_string(),
+                    uri: boost.ap_id.to_string(),
+                    url: boost.ap_id.to_string(),
+                    created_at: boost.published.to_string(),
+                    account: Account::build(boost.author(&state.db_pool).await?, state, false)
+                        .await?,
+                    visibility: boost.visibility,
+                    reblog: Some(Box::new(status.clone())),
+                    ..status
+                })
+            },
+        }
+    }
+
     pub async fn build_from_vec(
         posts: Vec<Post>,
         user_id: Option<&DbId>,
@@ -181,6 +206,21 @@ impl Status {
             posts
                 .into_iter()
                 .map(|post| async { Self::build(post, user_id, state).await }),
+        )
+        .await
+        .into_iter()
+        .collect()
+    }
+
+    pub async fn build_timeline(
+        entries: Vec<TimelineEntry>,
+        user_id: Option<&DbId>,
+        state: &Arc<AppState>,
+    ) -> anyhow::Result<Vec<Self>> {
+        join_all(
+            entries.into_iter().map(|entry| async {
+                Self::build_from_timeline_entry(entry, user_id, state).await
+            }),
         )
         .await
         .into_iter()
