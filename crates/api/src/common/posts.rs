@@ -157,13 +157,20 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
 
     if !options.local_only {
         let activity = CreateNote::from(ApNote(object.clone()).into_json(data).await?);
-
-        let mut inboxes = by.reached_inboxes(&data.db_pool).await?;
-        inboxes.extend(
+        let inboxes = if object.visibility == DbVisibility::Direct {
             mentions
                 .iter()
-                .map(|mention| mention.shared_inbox_or_inbox().to_string()),
-        );
+                .map(|mention| mention.shared_inbox_or_inbox().to_string())
+                .collect()
+        } else {
+            let mut inboxes = by.reached_inboxes(&data.db_pool).await?;
+            inboxes.extend(
+                mentions
+                    .iter()
+                    .map(|mention| mention.shared_inbox_or_inbox().to_string()),
+            );
+            inboxes
+        };
 
         send_activity(
             activity,
