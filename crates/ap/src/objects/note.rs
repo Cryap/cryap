@@ -236,11 +236,8 @@ impl Object for ApNote {
             .select(User::as_select())
             .load::<User>(&mut data.db_pool.get().await?)
             .await?;
-        self.into_json_mentions(
-            data,
-            &mentions.into_iter().map(|user| ApUser(user)).collect(),
-        )
-        .await
+        self.into_json_mentions(data, &mentions.into_iter().map(ApUser).collect())
+            .await
     }
 
     async fn verify(
