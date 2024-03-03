@@ -6,7 +6,6 @@ use activitypub_federation::{
     fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
     traits::{Actor, Object},
 };
-use anyhow::anyhow;
 use ap::{
     activities::{create::note::CreateNote, like::Like, undo::like::UndoLike},
     common::notifications,
@@ -117,12 +116,17 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
 
     for mention in match_mentions(content.clone()) {
         let user = if mention.contains('@') {
-            webfinger_resolve_actor(&mention, data).await?
-        } else {
-            let user = User::by_name(&mention, &data.db_pool).await?;
-            match user {
+            match User::by_acct(mention.clone(), &data.db_pool).await? {
                 Some(user) => ApUser(user),
-                None => return Err(anyhow!("mentioned local user not found")),
+                None => match webfinger_resolve_actor(&mention, data).await {
+                    Ok(user) => user,
+                    Err(_) => continue,
+                },
+            }
+        } else {
+            match User::local_by_name(&mention, &data.db_pool).await? {
+                Some(user) => ApUser(user),
+                None => continue,
             }
         };
 
@@ -156,7 +160,11 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
         .collect();
 
     if !options.local_only {
-        let activity = CreateNote::from(ApNote(object.clone()).into_json(data).await?);
+        let activity = CreateNote::from(
+            ApNote(object.clone())
+                .into_json_mentions(data, &mentions)
+                .await?,
+        );
         let inboxes = if object.visibility == DbVisibility::Direct {
             mentions
                 .iter()

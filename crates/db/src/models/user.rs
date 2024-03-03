@@ -70,21 +70,6 @@ impl User {
         }
     }
 
-    pub async fn by_name(
-        name: &str,
-        db_pool: &Pool<AsyncPgConnection>,
-    ) -> anyhow::Result<Option<Self>> {
-        let user = users::table
-            .filter(users::name.eq(name.to_string()))
-            .first::<Self>(&mut db_pool.get().await?)
-            .await;
-        match user {
-            Ok(user) => Ok(Some(user)),
-            Err(NotFound) => Ok(None),
-            Err(err) => Err(err.into()),
-        }
-    }
-
     pub async fn local_by_name(
         name: &str,
         db_pool: &Pool<AsyncPgConnection>,

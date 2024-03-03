@@ -125,28 +125,12 @@ pub struct Note {
     pub cc: Vec<Url>,
 }
 
-#[async_trait::async_trait]
-impl Object for ApNote {
-    type DataType = Arc<AppState>;
-    type Kind = Note;
-    type Error = anyhow::Error;
-
-    async fn read_from_id(
-        object_id: Url,
-        data: &Data<Self::DataType>,
-    ) -> Result<Option<Self>, Self::Error> {
-        let user = posts::table
-            .filter(posts::ap_id.eq(object_id.to_string()))
-            .first::<db::models::Post>(&mut data.db_pool.get().await?)
-            .await;
-        match user {
-            Ok(post) => Ok(Some(ApNote(post))),
-            Err(NotFound) => Ok(None),
-            Err(err) => Err(err.into()),
-        }
-    }
-
-    async fn into_json(self, data: &Data<Self::DataType>) -> Result<Self::Kind, Self::Error> {
+impl ApNote {
+    pub async fn into_json_mentions(
+        self,
+        data: &Data<Arc<AppState>>,
+        mentions: &Vec<ApUser>,
+    ) -> Result<Note, anyhow::Error> {
         if self.local_only {
             return Err(anyhow!("Cannot federate local-only object"));
         }
@@ -174,13 +158,6 @@ impl Object for ApNote {
                 None => None,
             },
         };
-
-        let mentions: Vec<User> = db::schema::post_mention::dsl::post_mention
-            .filter(db::schema::post_mention::dsl::post_id.eq(self.id.clone()))
-            .inner_join(db::schema::users::dsl::users)
-            .select(User::as_select())
-            .load::<User>(&mut data.db_pool.get().await?)
-            .await?;
 
         // Panic safety: should never panic
         let mention_ids: Vec<Url> = mentions
@@ -224,6 +201,46 @@ impl Object for ApNote {
             published: Some(published),
             updated: self.updated,
         })
+    }
+}
+
+#[async_trait::async_trait]
+impl Object for ApNote {
+    type DataType = Arc<AppState>;
+    type Kind = Note;
+    type Error = anyhow::Error;
+
+    async fn read_from_id(
+        object_id: Url,
+        data: &Data<Self::DataType>,
+    ) -> Result<Option<Self>, Self::Error> {
+        let user = posts::table
+            .filter(posts::ap_id.eq(object_id.to_string()))
+            .first::<db::models::Post>(&mut data.db_pool.get().await?)
+            .await;
+        match user {
+            Ok(post) => Ok(Some(ApNote(post))),
+            Err(NotFound) => Ok(None),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    async fn into_json(self, data: &Data<Self::DataType>) -> Result<Self::Kind, Self::Error> {
+        if self.local_only {
+            return Err(anyhow!("Cannot federate local-only object"));
+        }
+
+        let mentions: Vec<User> = db::schema::post_mention::dsl::post_mention
+            .filter(db::schema::post_mention::dsl::post_id.eq(self.id.clone()))
+            .inner_join(db::schema::users::dsl::users)
+            .select(User::as_select())
+            .load::<User>(&mut data.db_pool.get().await?)
+            .await?;
+        self.into_json_mentions(
+            data,
+            &mentions.into_iter().map(|user| ApUser(user)).collect(),
+        )
+        .await
     }
 
     async fn verify(
