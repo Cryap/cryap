@@ -1,7 +1,7 @@
 # Cryap 🦆
 [Mastodon (until Cryap is ready for this)](https://mastodon.social/@cryap) | [Matrix Space](https://matrix.to/#/#cryap:matrix.org)
 
-Cryap is a federated social network written in Rust, that is under development. It can federate with Mastodon, Pleroma and other ActivityPub compatible social networks! It also implements the Mastodon API, making it compatible with clients such as Semaphore or Tusky. And despite this, we plan to implement our own frontend.
+Cryap is a federated social network written in Rust, which is under development. It can federate with Mastodon, Pleroma and other ActivityPub compatible social networks! It also implements the Mastodon API, making it compatible with clients such as Semaphore or Tusky. And despite this, we plan to implement our own frontend.
 ## Why another social network?
 We plan that Cryap will combine the advantages of all popular ActivityPub microblogging engines. For example, the simplicity of Mastodon, the versatility of Misskey, and the lightness more than Pleroma, because Cryap is written in Rust. We also plan to implement such functionality as [cat ears for avatars](https://github.com/mastodon/mastodon/issues/18337), articles and much more.
 # Status
