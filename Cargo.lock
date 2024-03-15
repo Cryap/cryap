@@ -145,6 +145,7 @@ dependencies = [
  "diesel",
  "diesel-async",
  "enum_delegate",
+ "futures",
  "hyper",
  "lazy_static",
  "log",

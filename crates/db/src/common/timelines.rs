@@ -16,6 +16,7 @@ use crate::{
     types::{DbId, DbVisibility},
 };
 
+#[derive(Clone)]
 pub enum TimelineEntry {
     Post(Post),
     Boost(PostBoost, Post),

@@ -21,5 +21,6 @@ macro_rules! db_to_ap {
 
 pub mod announce;
 pub mod note;
+pub mod ordered_collection;
 pub mod service_actor;
 pub mod user;

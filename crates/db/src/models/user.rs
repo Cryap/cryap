@@ -7,7 +7,9 @@ use crate::{
     models::{user_follow_requests::UserFollowRequest, Post},
     paginate,
     pagination::Pagination,
-    schema::{bookmarks, post_like, posts, user_follow_requests, user_followers, users},
+    schema::{
+        bookmarks, post_boost, post_like, posts, user_follow_requests, user_followers, users,
+    },
     types::DbId,
     utils::coalesce,
 };
@@ -137,6 +139,21 @@ impl User {
             db_pool,
         )
         .await
+    }
+
+    pub async fn posts_count(&self, db_pool: &Pool<AsyncPgConnection>) -> anyhow::Result<i64> {
+        let mut conn = db_pool.get().await?;
+        let posts_count: i64 = posts::table
+            .filter(posts::author.eq(&self.id))
+            .count()
+            .get_result(&mut conn)
+            .await?;
+        let boosts_count: i64 = post_boost::table
+            .filter(post_boost::actor_id.eq(&self.id))
+            .count()
+            .get_result(&mut conn)
+            .await?;
+        Ok(posts_count + boosts_count)
     }
 
     pub async fn follows_by_id(
