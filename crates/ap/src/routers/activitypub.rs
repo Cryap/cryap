@@ -33,7 +33,7 @@ pub async fn http_get_webfinger(
     let name = extract_webfinger_name(&resource, &state)?;
     let user: User = schema::users::table
         .filter(schema::users::local.eq(true))
-        .filter(schema::users::name.eq(name.clone()))
+        .filter(schema::users::name.eq(name))
         .first(&mut connection)
         .await?;
     Ok(Json(Webfinger {

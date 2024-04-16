@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use activitypub_federation::{
-    activity_queue::send_activity, config::Data, http_signatures::generate_actor_keypair,
+    activity_queue::queue_activity, config::Data, http_signatures::generate_actor_keypair,
 };
 use anyhow::anyhow;
 use ap::{activities::update::Update, objects::user::ApUser};
@@ -91,8 +91,8 @@ pub async fn get_instances(state: &Arc<AppState>) -> anyhow::Result<Vec<String>>
 }
 
 pub async fn distribute_update(user: &User, data: &Data<Arc<AppState>>) -> anyhow::Result<()> {
-    send_activity(
-        Update::build(user.clone(), data).await?,
+    queue_activity(
+        &Update::build(user.clone(), data).await?,
         &ApUser(user.clone()),
         user.reached_inboxes(&data.db_pool)
             .await?

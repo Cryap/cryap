@@ -29,7 +29,7 @@ axum = { version = "0.6.18", features = [
   "macros",
 ] }
 diesel-async = { version = "0.4.1", features = ["postgres", "deadpool"] }
-env_logger = "0.10.0"
+env_logger = "0.11.3"
 listenfd = "1.0.1"
 log = "0.4.18"
 serde = "1.0.163"
@@ -53,7 +53,7 @@ diesel = { version = "2.1.0", features = [
 ] }
 time = { version = "0.3.23" }
 serde_json = "1.0.97"
-activitypub_federation = { version = "=0.5.0-beta.1", default-features = false, features = [
+activitypub_federation = { version = "0.5.4", default-features = false, features = [
   "axum",
 ] }
 async-trait = "0.1.68"
@@ -66,15 +66,15 @@ tower-http = { version = "0.4.1", features = [
   "cors",
   "normalize-path",
 ] }
-redis = { version = "0.23.0", features = [
+redis = { version = "0.25.3", features = [
   "tokio-comp",
   "aio",
   "connection-manager",
   "r2d2",
   "rand",
 ] }
-toml = "0.7.6"
-rust-embed = { version = "6.8.1", features = [
+toml = "0.8.12"
+rust-embed = { version = "8.3.0", features = [
   "include-flate",
   "interpolate-folder-path",
   "axum-ex",

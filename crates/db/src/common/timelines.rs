@@ -295,7 +295,7 @@ pub async fn get_user_posts(
             .bind::<Bpchar, _>(actor_id.map(|id| id.to_string()).unwrap_or_default())
             .bind::<Bpchar, _>(user_id)
             .bind::<Varchar, _>(match pagination {
-                Pagination::MaxId(ref id, _) | Pagination::MinId(ref id, _) => &id,
+                Pagination::MaxId(ref id, _) | Pagination::MinId(ref id, _) => id,
                 Pagination::None(_) => "",
             })
             .bind::<Integer, _>(match pagination {

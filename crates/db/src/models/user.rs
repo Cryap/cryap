@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use diesel::{dsl::sql, prelude::*, query_dsl::QueryDsl, result::Error::NotFound, sql_types::Bool};
+use diesel::{dsl::sql, prelude::*, result::Error::NotFound, sql_types::Bool};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
 use crate::{

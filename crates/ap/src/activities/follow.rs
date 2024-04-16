@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use activitypub_federation::{
-    activity_queue::send_activity,
+    activity_queue::queue_activity,
     config::Data,
     fetch::object_id::ObjectId,
     kinds::activity::FollowType,
@@ -115,12 +115,12 @@ impl ActivityHandler for Follow {
                 id: Url::parse(&format!(
                     "{}/activities/accept/follows/{}",
                     followed.ap_id,
-                    DbId::default().to_string()
+                    DbId::default()
                 ))?,
             };
 
             let inboxes = vec![actor.shared_inbox_or_inbox()];
-            send_activity(activity, &followed, inboxes, data).await?;
+            queue_activity(&activity, &followed, inboxes, data).await?;
 
             notifications::process_follow(&actor, &followed, false, &data.db_pool).await?;
         }

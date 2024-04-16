@@ -104,7 +104,6 @@ async fn handle_websocket(
         Some(stream) => match StreamingCategory::by_name(&stream) {
             Some(category) => HashSet::from([category]),
             None => {
-                println!("sjkjdsksdds");
                 if split_sink
                     .send(Message::Text(
                         serde_json::to_string(&ApiError::new_without_status_code(
@@ -171,7 +170,6 @@ async fn handle_websocket(
                         .await
                         .is_err()
                     {
-                        println!("damn");
                         return;
                     }
                 },

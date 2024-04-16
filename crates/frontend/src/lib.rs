@@ -7,10 +7,10 @@ pub mod ssr {
 
     use crate::components::app::App;
     pub async fn render(path: String) -> String {
-        render_to_string_async(|cx| {
+        render_to_string_async(|| {
             let integration = ServerIntegration { path };
-            provide_context(cx, RouterIntegrationContext::new(integration));
-            view! { cx, <App /> }
+            provide_context(RouterIntegrationContext::new(integration));
+            view! { <App /> }
         })
         .await
     }

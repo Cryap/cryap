@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use activitypub_federation::{
-    activity_queue::send_activity,
+    activity_queue::queue_activity,
     config::Data,
     fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
     traits::{Actor, Object},
@@ -180,8 +180,8 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
             inboxes
         };
 
-        send_activity(
-            activity,
+        queue_activity(
+            &activity,
             &ApUser(by.clone()),
             inboxes
                 .into_iter()
@@ -241,8 +241,8 @@ pub async fn boost(
             inboxes.push(author_inbox);
         }
 
-        send_activity(
-            activity,
+        queue_activity(
+            &activity,
             &user,
             inboxes
                 .into_iter()
@@ -280,7 +280,7 @@ pub async fn like(user: &User, post: &Post, data: &Data<Arc<AppState>>) -> anyho
     };
 
     let inboxes = vec![ApUser(post.author(&data.db_pool).await?).shared_inbox_or_inbox()];
-    send_activity(activity, &ApUser(user.clone()), inboxes, data).await?;
+    queue_activity(&activity, &ApUser(user.clone()), inboxes, data).await?;
 
     insert_into(post_like::dsl::post_like)
         .values(vec![PostLike {
@@ -326,7 +326,7 @@ pub async fn unlike(user: &User, post: &Post, data: &Data<Arc<AppState>>) -> any
     };
 
     let inboxes = vec![ApUser(post.author(&data.db_pool).await?).shared_inbox_or_inbox()];
-    send_activity(activity, &ApUser(user.clone()), inboxes, data).await?;
+    queue_activity(&activity, &ApUser(user.clone()), inboxes, data).await?;
 
     let _ = delete(
         post_like::table

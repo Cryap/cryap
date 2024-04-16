@@ -6,7 +6,7 @@ repository.workspace = true
 
 [dependencies]
 chrono = "0.4.26"
-diesel = { version = "2.1.0", features = [
+diesel = { version = "2.1.5", features = [
   "postgres",
   "url",
   "without-deprecated",
@@ -17,12 +17,12 @@ diesel = { version = "2.1.0", features = [
 diesel-async = { version = "0.4.1", features = ["deadpool"] }
 diesel_async_migrations = { git = "https://github.com/niroco/diesel_async_migrations" }
 anyhow = "1.0.71"
-diesel-derive-newtype = "2.0.0-rc.0"
-svix-ksuid = { version = "0.7.0", features = ["serde"] }
+diesel-derive-newtype = "2.1.1"
+svix-ksuid = { version = "0.8.0", features = ["serde"] }
 lazy_static = "1.4.0"
 rand = "0.8.5"
 diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }
-redis = { version = "0.23.0", features = [
+redis = { version = "0.25.3", features = [
   "tokio-comp",
   "aio",
   "connection-manager",

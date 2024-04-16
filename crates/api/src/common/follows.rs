@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use activitypub_federation::{
-    activity_queue::send_activity, config::Data, fetch::object_id::ObjectId, traits::Actor,
+    activity_queue::queue_activity, config::Data, fetch::object_id::ObjectId, traits::Actor,
 };
 use ap::{
     activities::{
@@ -43,7 +43,7 @@ pub async fn want_to_follow(
     let to = ApUser(to.clone());
 
     let inboxes = vec![to.shared_inbox_or_inbox()];
-    send_activity(activity, &by, inboxes, data).await?;
+    queue_activity(&activity, &by, inboxes, data).await?;
 
     insert_into(user_follow_requests::dsl::user_follow_requests)
         .values(vec![UserFollowRequestsInsert {
@@ -109,7 +109,7 @@ pub async fn unfollow(by: &User, to: &User, data: &Data<Arc<AppState>>) -> anyho
     let to = ApUser(to.clone());
 
     let inboxes = vec![to.shared_inbox_or_inbox()];
-    send_activity(activity, &by, inboxes, data).await?;
+    queue_activity(&activity, &by, inboxes, data).await?;
 
     let _ = delete(
         user_follow_requests::dsl::user_follow_requests
@@ -179,7 +179,7 @@ pub async fn accept_follow_request(
     };
 
     let inboxes = vec![by.shared_inbox_or_inbox()];
-    send_activity(activity, &to, inboxes, data).await?;
+    queue_activity(&activity, &to, inboxes, data).await?;
 
     Ok(())
 }
@@ -240,7 +240,7 @@ pub async fn remove_from_followers(
     let to = ApUser(to.clone());
 
     let inboxes = vec![to.shared_inbox_or_inbox()];
-    send_activity(activity, &by, inboxes, data).await?;
+    queue_activity(&activity, &by, inboxes, data).await?;
 
     let _ = delete(
         user_follow_requests::dsl::user_follow_requests
