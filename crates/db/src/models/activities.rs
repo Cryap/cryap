@@ -17,11 +17,14 @@ pub struct ReceivedActivity {
 }
 
 impl ReceivedActivity {
-    pub async fn create(ap_id: &str, db_pool: &Pool<AsyncPgConnection>) -> anyhow::Result<()> {
+    pub async fn create(
+        ap_id: &str,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> Result<(), diesel::result::Error> {
         let rows_affected = insert_into(received_activities::table)
             .values(received_activities::ap_id.eq(ap_id))
             .on_conflict_do_nothing()
-            .execute(&mut db_pool.get().await?)
+            .execute(&mut db_pool.get().await.unwrap())
             .await
             .optional()?;
         if rows_affected == Some(1) {
@@ -29,7 +32,10 @@ impl ReceivedActivity {
             Ok(())
         } else {
             // Duplicate activity
-            Err(DatabaseError(DatabaseErrorKind::UniqueViolation, Box::<String>::default()).into())
+            Err(DatabaseError(
+                DatabaseErrorKind::UniqueViolation,
+                Box::<String>::default(),
+            ))
         }
     }
 }

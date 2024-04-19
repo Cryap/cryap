@@ -16,7 +16,7 @@ use url::Url;
 use web::AppState;
 
 use crate::{
-    activities::insert_received_activity,
+    activities::is_duplicate,
     common::notifications,
     objects::{note::ApNote, user::ApUser},
 };
@@ -49,7 +49,9 @@ impl ActivityHandler for Like {
     }
 
     async fn receive(self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
-        insert_received_activity(&self.id, data).await?;
+        if is_duplicate(&self.id, data).await? {
+            return Ok(());
+        }
 
         let mut conn = data.db_pool.get().await?;
 

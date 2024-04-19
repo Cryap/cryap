@@ -13,7 +13,7 @@ use url::Url;
 use web::AppState;
 
 use crate::{
-    activities::{follow::Follow, insert_received_activity},
+    activities::{follow::Follow, is_duplicate},
     objects::user::ApUser,
 };
 
@@ -50,11 +50,14 @@ impl ActivityHandler for RejectFollow {
             return Err(anyhow::anyhow!("Invalid RejectFollow activity..."));
         }
 
+        self.object.verify(data).await?;
         Ok(())
     }
 
     async fn receive(self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
-        insert_received_activity(&self.id, data).await?;
+        if is_duplicate(&self.id, data).await? {
+            return Ok(());
+        }
 
         let mut conn = data.db_pool.get().await?;
 

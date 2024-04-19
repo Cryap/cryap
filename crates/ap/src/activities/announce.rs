@@ -9,9 +9,7 @@ use url::Url;
 use web::AppState;
 
 pub use crate::objects::announce::Announce;
-use crate::{
-    activities::insert_received_activity, common::notifications, objects::announce::ApAnnounce,
-};
+use crate::{activities::is_duplicate, common::notifications, objects::announce::ApAnnounce};
 
 #[async_trait]
 impl ActivityHandler for Announce {
@@ -26,12 +24,15 @@ impl ActivityHandler for Announce {
         self.actor.inner()
     }
 
-    async fn verify(&self, _data: &Data<Self::DataType>) -> Result<(), Self::Error> {
+    async fn verify(&self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
+        ApAnnounce::verify(&self, &self.actor.inner(), data).await?;
         Ok(())
     }
 
     async fn receive(self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
-        insert_received_activity(&self.id(), data).await?;
+        if is_duplicate(&self.id(), data).await? {
+            return Ok(());
+        }
 
         let actor = self.actor.dereference(data).await?;
         let post = self.object.dereference(data).await?;

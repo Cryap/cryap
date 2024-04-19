@@ -12,7 +12,7 @@ use url::Url;
 use web::AppState;
 
 use crate::{
-    activities::{insert_received_activity, like::Like},
+    activities::{is_duplicate, like::Like},
     common::notifications,
     objects::user::ApUser,
 };
@@ -47,11 +47,15 @@ impl ActivityHandler for UndoLike {
         if actor_undo.id != actor_like.id {
             return Err(anyhow::anyhow!("Invalid Undo activity..."));
         }
+
+        self.object.verify(data).await?;
         Ok(())
     }
 
     async fn receive(self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
-        insert_received_activity(&self.id, data).await?;
+        if is_duplicate(&self.id, data).await? {
+            return Ok(());
+        }
 
         let mut conn = data.db_pool.get().await?;
 

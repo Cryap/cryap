@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use activitypub_federation::{config::Data, traits::ActivityHandler};
 use db::models::ReceivedActivity;
+use diesel::result::{DatabaseErrorKind, Error::DatabaseError};
 use serde::{Deserialize, Serialize};
 use url::Url;
 use web::AppState;
@@ -32,12 +33,10 @@ pub enum UserInbox {
     Update(update::Update),
 }
 
-/**
- * This ensures that the same activity does not get processed more than once.
- */
-pub async fn insert_received_activity(
-    ap_id: &Url,
-    data: &Data<Arc<AppState>>,
-) -> anyhow::Result<()> {
-    ReceivedActivity::create(ap_id.as_str(), &data.db_pool).await
+pub async fn is_duplicate(ap_id: &Url, data: &Data<Arc<AppState>>) -> anyhow::Result<bool> {
+    match ReceivedActivity::create(ap_id.as_str(), &data.db_pool).await {
+        Err(DatabaseError(DatabaseErrorKind::UniqueViolation, _)) => Ok(true),
+        Err(error) => Err(error.into()),
+        Ok(()) => Ok(false),
+    }
 }

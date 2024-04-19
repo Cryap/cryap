@@ -12,7 +12,7 @@ use url::Url;
 use web::AppState;
 
 use crate::{
-    activities::insert_received_activity,
+    activities::is_duplicate,
     common::notifications,
     objects::{
         note::{ApNote, Note},
@@ -64,11 +64,14 @@ impl ActivityHandler for CreateNote {
             return Err(anyhow::anyhow!("Invalid Create activity..."));
         }
 
+        ApNote::verify(&self.object, self.actor.inner(), data).await?;
         Ok(())
     }
 
     async fn receive(self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
-        insert_received_activity(&self.id, data).await?;
+        if is_duplicate(&self.id, data).await? {
+            return Ok(());
+        }
 
         let note = ApNote::from_json(self.object, data).await?;
         notifications::process_post(&note, &data.db_pool).await?;
