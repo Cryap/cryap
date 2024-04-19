@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use diesel::{dsl::sql, prelude::*, result::Error::NotFound, sql_types::Bool};
+use diesel::{dsl::sql, prelude::*, result::Error::NotFound, select, sql_types::Bool};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
 use crate::{
@@ -54,6 +54,12 @@ pub struct UserUpdate {
     pub manually_approves_followers: Option<bool>,
     pub is_cat: Option<bool>,
     pub bot: Option<bool>,
+}
+
+pub struct UserRelationship {
+    pub following: bool,
+    pub followed_by: bool,
+    pub wants_to_follow: bool,
 }
 
 impl User {
@@ -198,6 +204,39 @@ impl User {
             Err(NotFound) => Ok(false),
             Err(err) => Err(err.into()),
         }
+    }
+
+    pub async fn relationship(
+        &self,
+        user: &User,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<UserRelationship> {
+        let (following, followed_by, wants_to_follow): (Option<bool>, Option<bool>, Option<bool>) =
+            select((
+                user_followers::table
+                    .select(sql::<Bool>("true"))
+                    .filter(user_followers::actor_id.eq(&self.id))
+                    .filter(user_followers::follower_id.eq(&user.id))
+                    .single_value(),
+                user_followers::table
+                    .select(sql::<Bool>("true"))
+                    .filter(user_followers::actor_id.eq(&user.id))
+                    .filter(user_followers::follower_id.eq(&self.id))
+                    .single_value(),
+                user_follow_requests::table
+                    .select(sql::<Bool>("true"))
+                    .filter(user_follow_requests::actor_id.eq(&self.id))
+                    .filter(user_follow_requests::follower_id.eq(&user.id))
+                    .single_value(),
+            ))
+            .first(&mut db_pool.get().await?)
+            .await?;
+
+        Ok(UserRelationship {
+            following: following.unwrap_or_default(),
+            followed_by: followed_by.unwrap_or_default(),
+            wants_to_follow: wants_to_follow.unwrap_or_default(),
+        })
     }
 
     pub async fn followers(

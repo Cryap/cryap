@@ -84,7 +84,10 @@ pub async fn http_get_get(
         match boost {
             Some(boost) => {
                 if posts::boost_accessible_for(&boost, user.as_ref(), &state.db_pool).await? {
-                    Ok(Json(Status::build_from_boost(boost, None, &state).await?).into_response())
+                    Ok(
+                        Json(Status::build_from_boost(boost, Some(post), None, &state).await?)
+                            .into_response(),
+                    )
                 } else {
                     Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
                 }
@@ -250,10 +253,10 @@ pub async fn http_post_favourite(
         }
 
         match boost {
-            Some(boost) => Ok(
-                Json(Status::build_from_boost(boost, Some(&user.id), &state).await?)
-                    .into_response(),
-            ),
+            Some(boost) => Ok(Json(
+                Status::build_from_boost(boost, Some(post), Some(&user.id), &state).await?,
+            )
+            .into_response()),
             None => Ok(Json(Status::build(post, Some(&user.id), &state).await?).into_response()),
         }
     } else {
@@ -295,9 +298,10 @@ pub async fn http_post_unfavourite(
         }
 
         match boost {
-            Some(boost) => {
-                Ok(Json(Status::build_from_boost(boost, None, &state).await?).into_response())
-            },
+            Some(boost) => Ok(Json(
+                Status::build_from_boost(boost, Some(post), None, &state).await?,
+            )
+            .into_response()),
             None => Ok(Json(Status::build(post, None, &state).await?).into_response()),
         }
     } else {
@@ -365,7 +369,7 @@ pub async fn http_post_reblog(
             posts::boost(&user, &post, visibility, &state).await?
         };
 
-        Ok(Json(Status::build_from_boost(boost, None, &state).await?).into_response())
+        Ok(Json(Status::build_from_boost(boost, Some(post), None, &state).await?).into_response())
     } else {
         Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response())
     }
@@ -403,9 +407,10 @@ pub async fn http_post_bookmark(
         post.bookmark(&user, &state.db_pool).await?;
 
         match boost {
-            Some(boost) => {
-                Ok(Json(Status::build_from_boost(boost, None, &state).await?).into_response())
-            },
+            Some(boost) => Ok(Json(
+                Status::build_from_boost(boost, Some(post), None, &state).await?,
+            )
+            .into_response()),
             None => Ok(Json(Status::build(post, None, &state).await?).into_response()),
         }
     } else {
@@ -445,9 +450,10 @@ pub async fn http_post_unbookmark(
         post.unbookmark(&user, &state.db_pool).await?;
 
         match boost {
-            Some(boost) => {
-                Ok(Json(Status::build_from_boost(boost, None, &state).await?).into_response())
-            },
+            Some(boost) => Ok(Json(
+                Status::build_from_boost(boost, Some(post), None, &state).await?,
+            )
+            .into_response()),
             None => Ok(Json(Status::build(post, None, &state).await?).into_response()),
         }
     } else {

@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
-use db::{
-    models::User,
-    schema::{user_follow_requests, user_followers},
-    types::DbVisibility,
+use db::{models::User, schema::user_follow_requests, types::DbVisibility};
+use diesel::{
+    sql_query,
+    sql_types::{BigInt, Bpchar},
+    ExpressionMethods, QueryDsl, QueryableByName,
 };
-use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use futures::future::join_all;
 use serde::Serialize;
@@ -46,6 +46,14 @@ pub struct Account {
     pub is_cat: bool,
 }
 
+#[derive(QueryableByName, Debug)]
+struct CountQueryResult {
+    #[diesel(sql_type = BigInt)]
+    followers_count: i64,
+    #[diesel(sql_type = BigInt)]
+    following_count: i64,
+}
+
 impl Account {
     pub async fn build(
         user: User,
@@ -54,20 +62,25 @@ impl Account {
     ) -> anyhow::Result<Self> {
         let mut conn = state.db_pool.get().await?;
 
-        let followers_count: i64 = user_followers::table
-            .filter(user_followers::follower_id.eq(user.id.clone()))
-            .count()
-            .get_result(&mut conn)
-            .await?;
-        let following_count: i64 = user_followers::table
-            .filter(user_followers::actor_id.eq(user.id.clone()))
-            .count()
-            .get_result(&mut conn)
-            .await?;
+        // TODO: Rewrite to DSL after Diesel 2.2 release with `case_when`
+        let count_query_result: Vec<CountQueryResult> = sql_query(
+            "
+            SELECT
+                SUM(CASE WHEN follower_id = $1 THEN 1 ELSE 0 END) AS followers_count,
+                SUM(CASE WHEN actor_id = $1 THEN 1 ELSE 0 END) AS following_count
+            FROM user_followers;
+            ",
+        )
+        .bind::<Bpchar, _>(user.id.clone())
+        .load::<CountQueryResult>(&mut conn)
+        .await?;
+        let count_query_result = count_query_result
+            .get(0)
+            .expect("Result of this query should be not empty");
         let follow_requests_count: i64 = match with_source {
             true => {
                 user_follow_requests::table
-                    .filter(user_follow_requests::follower_id.eq(user.id.clone()))
+                    .filter(user_follow_requests::follower_id.eq(&user.id))
                     .count()
                     .get_result(&mut conn)
                     .await?
@@ -89,8 +102,8 @@ impl Account {
             },
             created_at: user.published,
             note: user.bio.clone().unwrap_or_default(),
-            followers_count: followers_count.try_into().unwrap(),
-            following_count: following_count.try_into().unwrap(),
+            followers_count: count_query_result.followers_count.try_into().unwrap(),
+            following_count: count_query_result.following_count.try_into().unwrap(),
 
             source: match with_source {
                 true => Some(AccountSource {

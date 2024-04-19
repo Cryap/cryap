@@ -1,6 +1,8 @@
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use diesel::{delete, dsl::sql, insert_into, prelude::*, result::Error::NotFound, sql_types::Bool};
+use diesel::{
+    delete, dsl::sql, insert_into, prelude::*, result::Error::NotFound, select, sql_types::Bool,
+};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
 use crate::{
@@ -29,6 +31,12 @@ pub struct Post {
     pub url: String,
     pub quote: Option<DbId>,
     pub visibility: DbVisibility,
+}
+
+pub struct PostRelationship {
+    pub liked: bool,
+    pub boosted: bool,
+    pub bookmarked: bool,
 }
 
 impl Post {
@@ -101,24 +109,6 @@ impl Post {
         }
     }
 
-    pub async fn bookmarked_by(
-        &self,
-        user_id: &DbId,
-        db_pool: &Pool<AsyncPgConnection>,
-    ) -> anyhow::Result<bool> {
-        let result = bookmarks::table
-            .select(sql::<Bool>("true"))
-            .filter(bookmarks::post_id.eq(&self.id))
-            .filter(bookmarks::actor_id.eq(user_id))
-            .first::<bool>(&mut db_pool.get().await?)
-            .await;
-        match result {
-            Ok(_) => Ok(true),
-            Err(NotFound) => Ok(false),
-            Err(err) => Err(err.into()),
-        }
-    }
-
     pub async fn boost_by(
         &self,
         user_id: &DbId,
@@ -152,6 +142,38 @@ impl Post {
             Err(NotFound) => Ok(false),
             Err(err) => Err(err.into()),
         }
+    }
+
+    pub async fn relationship(
+        &self,
+        user_id: &DbId,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<PostRelationship> {
+        let (liked, boosted, bookmarked): (Option<bool>, Option<bool>, Option<bool>) = select((
+            post_like::table
+                .select(sql::<Bool>("true"))
+                .filter(post_like::post_id.eq(&self.id))
+                .filter(post_like::actor_id.eq(user_id))
+                .single_value(),
+            post_boost::table
+                .select(sql::<Bool>("true"))
+                .filter(post_boost::post_id.eq(&self.id))
+                .filter(post_boost::actor_id.eq(user_id))
+                .single_value(),
+            bookmarks::table
+                .select(sql::<Bool>("true"))
+                .filter(bookmarks::post_id.eq(&self.id))
+                .filter(bookmarks::actor_id.eq(user_id))
+                .single_value(),
+        ))
+        .first(&mut db_pool.get().await?)
+        .await?;
+
+        Ok(PostRelationship {
+            liked: liked.unwrap_or_default(),
+            boosted: boosted.unwrap_or_default(),
+            bookmarked: bookmarked.unwrap_or_default(),
+        })
     }
 
     pub async fn bookmark(

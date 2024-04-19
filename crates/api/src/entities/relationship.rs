@@ -18,11 +18,13 @@ impl Relationship {
         to: &User,
         db_pool: &Pool<AsyncPgConnection>,
     ) -> anyhow::Result<Self> {
+        let relationship = by.relationship(&to, db_pool).await?;
+
         Ok(Self {
             id: to.id.to_string(),
-            following: by.follows(to, db_pool).await?,
-            followed_by: to.follows(by, db_pool).await?,
-            requested: by.wants_to_follow(to, db_pool).await?,
+            following: relationship.following,
+            followed_by: relationship.followed_by,
+            requested: relationship.wants_to_follow,
             note: PrivateNote::get(by, to, db_pool).await?.unwrap_or_default(),
         })
     }

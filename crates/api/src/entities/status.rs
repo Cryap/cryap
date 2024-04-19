@@ -11,7 +11,7 @@ use db::{
     },
     types::{DbId, DbVisibility},
 };
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{select, ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use futures::future::join_all;
 use serde::Serialize;
@@ -76,20 +76,22 @@ impl Status {
     ) -> anyhow::Result<Self> {
         let mut conn = state.db_pool.get().await?;
 
-        let reblogs_count: i64 = post_boost
-            .filter(post_boost_dsl::post_id.eq(post.id.clone()))
-            .count()
-            .get_result(&mut conn)
-            .await?;
-        let favourites_count: i64 = post_like
-            .filter(post_like_dsl::post_id.eq(post.id.clone()))
-            .count()
-            .get_result(&mut conn)
-            .await?;
+        let (reblogs_count, favourites_count): (Option<i64>, Option<i64>) = select((
+            post_boost
+                .filter(post_boost_dsl::post_id.eq(&post.id))
+                .count()
+                .single_value(),
+            post_like
+                .filter(post_like_dsl::post_id.eq(&post.id))
+                .count()
+                .single_value(),
+        ))
+        .first(&mut conn)
+        .await?;
 
-        let reblogs_count: u32 = reblogs_count.try_into().unwrap(); // Nice, my post has
-                                                                    // 4294967296 boosts!
-        let favourites_count: u32 = favourites_count.try_into().unwrap();
+        let reblogs_count: u32 = reblogs_count.unwrap_or(0).try_into().unwrap(); // Nice, my post has
+                                                                                 // 4294967296 boosts!
+        let favourites_count: u32 = favourites_count.unwrap_or(0).try_into().unwrap();
 
         let mentions: Vec<User> = post_mention
             .filter(post_mention_dsl::post_id.eq(post.id.clone()))
@@ -104,11 +106,12 @@ impl Status {
         };
 
         let relationship = if let Some(user_id) = user_id {
+            let relationship = post.relationship(&user_id, &state.db_pool).await?;
             Some(StatusRelationship {
-                favourited: post.is_liked_by(user_id, &state.db_pool).await?,
-                reblogged: post.boost_by(user_id, &state.db_pool).await?.is_some(),
+                favourited: relationship.liked,
+                reblogged: relationship.boosted,
                 muted: false,
-                bookmarked: post.bookmarked_by(user_id, &state.db_pool).await?,
+                bookmarked: relationship.bookmarked,
                 pinned: false,
             })
         } else {
@@ -155,11 +158,20 @@ impl Status {
 
     pub async fn build_from_boost(
         boost: PostBoost,
+        original_post: Option<Post>,
         user_id: Option<&DbId>,
         state: &Arc<AppState>,
     ) -> anyhow::Result<Self> {
-        let post = boost.post(&state.db_pool).await?;
-        let status = Self::build(post, user_id, state).await?;
+        let status = Self::build(
+            if let Some(original_post) = original_post {
+                original_post
+            } else {
+                boost.post(&state.db_pool).await?
+            },
+            user_id,
+            state,
+        )
+        .await?;
 
         Ok(Status {
             id: boost.id.to_string(),
@@ -181,18 +193,7 @@ impl Status {
         match timeline_entry {
             TimelineEntry::Post(post) => Self::build(post, user_id, state).await,
             TimelineEntry::Boost(boost, post) => {
-                let status = Self::build(post, user_id, state).await?;
-                Ok(Status {
-                    id: boost.id.to_string(),
-                    uri: boost.ap_id.to_string(),
-                    url: boost.ap_id.to_string(),
-                    created_at: boost.published.to_string(),
-                    account: Account::build(boost.author(&state.db_pool).await?, state, false)
-                        .await?,
-                    visibility: boost.visibility,
-                    reblog: Some(Box::new(status.clone())),
-                    ..status
-                })
+                Self::build_from_boost(boost, Some(post), user_id, state).await
             },
         }
     }
