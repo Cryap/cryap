@@ -11,7 +11,11 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 use web::AppState;
 
-use crate::{activities::announce::Announce, common::notifications, objects::user::ApUser};
+use crate::{
+    activities::{announce::Announce, insert_received_activity},
+    common::notifications,
+    objects::user::ApUser,
+};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -47,6 +51,8 @@ impl ActivityHandler for UndoAnnounce {
     }
 
     async fn receive(self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
+        insert_received_activity(&self.id, data).await?;
+
         let mut conn = data.db_pool.get().await?;
 
         let actor = self.actor.dereference(data).await?;

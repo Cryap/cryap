@@ -18,7 +18,10 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 use web::AppState;
 
-use crate::{activities::follow::Follow, objects::user::ApUser};
+use crate::{
+    activities::{follow::Follow, insert_received_activity},
+    objects::user::ApUser,
+};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -57,6 +60,8 @@ impl ActivityHandler for AcceptFollow {
     }
 
     async fn receive(self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
+        insert_received_activity(&self.id, data).await?;
+
         let mut conn = data.db_pool.get().await?;
 
         let actor = self.actor.dereference(data).await?;

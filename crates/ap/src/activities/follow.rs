@@ -22,7 +22,9 @@ use url::Url;
 use web::AppState;
 
 use crate::{
-    activities::accept::follow::AcceptFollow, common::notifications, objects::user::ApUser,
+    activities::{accept::follow::AcceptFollow, insert_received_activity},
+    common::notifications,
+    objects::user::ApUser,
 };
 
 #[skip_serializing_none]
@@ -74,6 +76,8 @@ impl ActivityHandler for Follow {
     }
 
     async fn receive(self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
+        insert_received_activity(&self.id, data).await?;
+
         let mut conn = data.db_pool.get().await?;
 
         let actor = self.actor.dereference(data).await?;

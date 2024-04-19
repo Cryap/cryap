@@ -15,6 +15,7 @@ use url::Url;
 use web::AppState;
 
 use crate::{
+    activities::insert_received_activity,
     objects::user::{ApUser, Person},
     PUBLIC,
 };
@@ -71,6 +72,8 @@ impl ActivityHandler for Update {
     }
 
     async fn receive(self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
+        insert_received_activity(&self.id, data).await?;
+
         ApUser::from_json(self.object, data).await?;
         Ok(())
     }

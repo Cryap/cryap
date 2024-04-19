@@ -140,6 +140,13 @@ diesel::table! {
 }
 
 diesel::table! {
+    received_activities (ap_id) {
+        ap_id -> Text,
+        published -> Timestamptz,
+    }
+}
+
+diesel::table! {
     sessions (id) {
         #[max_length = 27]
         id -> Bpchar,
@@ -233,6 +240,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     post_mention,
     posts,
     private_notes,
+    received_activities,
     sessions,
     user_follow_requests,
     user_followers,

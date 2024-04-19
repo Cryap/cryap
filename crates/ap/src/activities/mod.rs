@@ -1,6 +1,10 @@
+use std::sync::Arc;
+
 use activitypub_federation::{config::Data, traits::ActivityHandler};
+use db::models::ReceivedActivity;
 use serde::{Deserialize, Serialize};
 use url::Url;
+use web::AppState;
 
 pub mod accept;
 pub mod announce;
@@ -26,4 +30,14 @@ pub enum UserInbox {
     Announce(announce::Announce),
     UndoAnnounce(undo::announce::UndoAnnounce),
     Update(update::Update),
+}
+
+/**
+ * This ensures that the same activity does not get processed more than once.
+ */
+pub async fn insert_received_activity(
+    ap_id: &Url,
+    data: &Data<Arc<AppState>>,
+) -> anyhow::Result<()> {
+    ReceivedActivity::create(ap_id.as_str(), &data.db_pool).await
 }

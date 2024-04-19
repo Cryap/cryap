@@ -12,6 +12,7 @@ use url::Url;
 use web::AppState;
 
 use crate::{
+    activities::insert_received_activity,
     common::notifications,
     objects::{
         note::{ApNote, Note},
@@ -67,6 +68,8 @@ impl ActivityHandler for CreateNote {
     }
 
     async fn receive(self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
+        insert_received_activity(&self.id, data).await?;
+
         let note = ApNote::from_json(self.object, data).await?;
         notifications::process_post(&note, &data.db_pool).await?;
 

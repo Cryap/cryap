@@ -1,3 +1,4 @@
+pub mod activities;
 pub mod application;
 pub mod bookmark;
 pub mod notification;
@@ -11,6 +12,7 @@ pub mod user;
 pub mod user_follow_requests;
 pub mod user_followers;
 
+pub use activities::ReceivedActivity;
 pub use application::Application;
 pub use bookmark::Bookmark;
 pub use notification::Notification;
