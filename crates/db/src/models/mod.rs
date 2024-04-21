@@ -9,8 +9,8 @@ pub mod private_note;
 pub mod redirect_code;
 pub mod session;
 pub mod user;
-pub mod user_follow_requests;
-pub mod user_followers;
+pub mod user_follow_request;
+pub mod user_follower;
 
 pub use activities::ReceivedActivity;
 pub use application::Application;
@@ -23,5 +23,5 @@ pub use private_note::PrivateNote;
 pub use redirect_code::RedirectCode;
 pub use session::Session;
 pub use user::User;
-pub use user_follow_requests::UserFollowRequestsInsert;
-pub use user_followers::UserFollowersInsert;
+pub use user_follow_request::UserFollowRequestsInsert;
+pub use user_follower::UserFollowersInsert;

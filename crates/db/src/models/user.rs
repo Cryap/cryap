@@ -4,7 +4,7 @@ use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQuer
 
 use crate::{
     common::timelines::{self, TimelineEntry},
-    models::{user_follow_requests::UserFollowRequest, Post},
+    models::{user_follow_request::UserFollowRequest, Post},
     paginate,
     pagination::Pagination,
     schema::{

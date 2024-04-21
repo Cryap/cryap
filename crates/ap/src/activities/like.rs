@@ -4,13 +4,7 @@ use activitypub_federation::{
     config::Data, fetch::object_id::ObjectId, kinds::activity::LikeType, traits::ActivityHandler,
 };
 use async_trait::async_trait;
-use chrono::Utc;
-use db::{
-    models::PostLike,
-    schema::{post_like, post_like::dsl},
-};
-use diesel::insert_into;
-use diesel_async::RunQueryDsl;
+use db::models::PostLike;
 use serde::{Deserialize, Serialize};
 use url::Url;
 use web::AppState;
@@ -53,24 +47,12 @@ impl ActivityHandler for Like {
             return Ok(());
         }
 
-        let mut conn = data.db_pool.get().await?;
-
         let actor = self.actor.dereference(data).await?;
         let post = self.object.dereference(data).await?;
 
-        insert_into(dsl::post_like)
-            .values(vec![PostLike {
-                actor_id: actor.id.clone(),
-                post_id: post.id.clone(),
-                ap_id: self.id.to_string(),
-                published: Utc::now(),
-            }])
-            .on_conflict((post_like::actor_id, post_like::post_id))
-            .do_nothing()
-            .execute(&mut conn)
-            .await?;
-
-        notifications::process_like(&post, &actor, false, &data.db_pool).await?;
+        if PostLike::create(self.id.to_string(), &post, &actor, &data.db_pool).await? {
+            notifications::process_like(&post, &actor, false, &data.db_pool).await?;
+        }
 
         Ok(())
     }

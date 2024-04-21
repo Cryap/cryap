@@ -4,9 +4,7 @@ use activitypub_federation::{
     config::Data, fetch::object_id::ObjectId, kinds::activity::UndoType, traits::ActivityHandler,
 };
 use async_trait::async_trait;
-use db::{schema, schema::post_like::dsl::post_like};
-use diesel::{delete, prelude::*};
-use diesel_async::RunQueryDsl;
+use db::models::PostLike;
 use serde::{Deserialize, Serialize};
 use url::Url;
 use web::AppState;
@@ -57,20 +55,12 @@ impl ActivityHandler for UndoLike {
             return Ok(());
         }
 
-        let mut conn = data.db_pool.get().await?;
-
         let actor = self.actor.dereference(data).await?;
         let post = self.object.object.dereference(data).await?;
 
-        let _ = delete(
-            post_like
-                .filter(schema::post_like::actor_id.eq(actor.id.clone()))
-                .filter(schema::post_like::post_id.eq(post.id.clone())),
-        )
-        .execute(&mut conn)
-        .await;
-
-        notifications::process_like(&post, &actor, true, &data.db_pool).await?;
+        if PostLike::delete(self.object.id.to_string(), &post, &actor, &data.db_pool).await? {
+            notifications::process_like(&post, &actor, true, &data.db_pool).await?;
+        }
 
         Ok(())
     }

@@ -11,7 +11,7 @@ use axum::{
     Extension, Json, Router,
 };
 use db::{
-    models::{user_follow_requests::UserFollowRequest, PrivateNote, Session, User},
+    models::{user_follow_request::UserFollowRequest, PrivateNote, Session, User},
     pagination::PaginationQuery,
     types::DbId,
 };

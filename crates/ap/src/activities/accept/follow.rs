@@ -5,15 +5,7 @@ use activitypub_federation::{
     protocol::helpers::deserialize_skip_error, traits::ActivityHandler,
 };
 use async_trait::async_trait;
-use db::{
-    models::UserFollowersInsert,
-    schema,
-    schema::{
-        user_follow_requests::dsl::user_follow_requests, user_followers, user_followers::dsl,
-    },
-};
-use diesel::{delete, insert_into, ExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
+use db::models::{user_follow_request::UserFollowRequest, user_follower::UserFollower};
 use serde::{Deserialize, Serialize};
 use url::Url;
 use web::AppState;
@@ -65,29 +57,14 @@ impl ActivityHandler for AcceptFollow {
             return Ok(());
         }
 
-        let mut conn = data.db_pool.get().await?;
-
         let actor = self.actor.dereference(data).await?;
         let followed = self.object.actor.dereference(data).await?;
 
-        let _ = delete(
-            user_follow_requests
-                .filter(schema::user_follow_requests::actor_id.eq(followed.id.clone()))
-                .filter(schema::user_follow_requests::follower_id.eq(actor.id.clone())),
-        )
-        .execute(&mut conn)
-        .await;
-
-        insert_into(dsl::user_followers)
-            .values(vec![UserFollowersInsert {
-                actor_id: followed.id.clone(),
-                follower_id: actor.id.clone(),
-                ap_id: Some(self.object.id.to_string()),
-            }])
-            .on_conflict((user_followers::actor_id, user_followers::follower_id))
-            .do_nothing()
-            .execute(&mut conn)
-            .await?;
+        if UserFollowRequest::delete(&followed, &actor, self.object.id.to_string(), &data.db_pool)
+            .await?
+        {
+            UserFollower::create(&followed, &actor, self.id.to_string(), &data.db_pool).await?;
+        }
 
         Ok(())
     }

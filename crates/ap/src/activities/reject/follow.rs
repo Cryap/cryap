@@ -5,9 +5,7 @@ use activitypub_federation::{
     protocol::helpers::deserialize_skip_error, traits::ActivityHandler,
 };
 use async_trait::async_trait;
-use db::schema::{self, user_follow_requests::dsl::user_follow_requests, user_followers::dsl};
-use diesel::{delete, ExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
+use db::models::{user_follow_request::UserFollowRequest, user_follower::UserFollower};
 use serde::{Deserialize, Serialize};
 use url::Url;
 use web::AppState;
@@ -59,26 +57,15 @@ impl ActivityHandler for RejectFollow {
             return Ok(());
         }
 
-        let mut conn = data.db_pool.get().await?;
-
         let actor = self.actor.dereference(data).await?;
         let followed = self.object.object.dereference(data).await?;
 
-        let _ = delete(
-            user_follow_requests
-                .filter(schema::user_follow_requests::actor_id.eq(followed.id.clone()))
-                .filter(schema::user_follow_requests::follower_id.eq(actor.id.clone())),
-        )
-        .execute(&mut conn)
-        .await;
-
-        let _ = delete(
-            dsl::user_followers
-                .filter(schema::user_followers::actor_id.eq(followed.id.clone()))
-                .filter(schema::user_followers::follower_id.eq(actor.id.clone())),
-        )
-        .execute(&mut conn)
-        .await;
+        if !UserFollowRequest::delete(&followed, &actor, self.object.id.to_string(), &data.db_pool)
+            .await?
+        {
+            UserFollower::delete(&followed, &actor, self.object.id.to_string(), &data.db_pool)
+                .await?;
+        }
 
         Ok(())
     }
