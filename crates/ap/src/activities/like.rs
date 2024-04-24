@@ -1,7 +1,11 @@
 use std::sync::Arc;
 
 use activitypub_federation::{
-    config::Data, fetch::object_id::ObjectId, kinds::activity::LikeType, traits::ActivityHandler,
+    activity_queue::queue_activity,
+    config::Data,
+    fetch::object_id::ObjectId,
+    kinds::activity::LikeType,
+    traits::{ActivityHandler, Actor},
 };
 use async_trait::async_trait;
 use db::models::PostLike;
@@ -10,7 +14,7 @@ use url::Url;
 use web::AppState;
 
 use crate::{
-    activities::is_duplicate,
+    activities::{generate_activity_id, is_duplicate},
     common::notifications,
     objects::{note::ApNote, user::ApUser},
 };
@@ -23,6 +27,32 @@ pub struct Like {
     #[serde(rename = "type")]
     pub kind: LikeType,
     pub id: Url,
+}
+
+impl Like {
+    pub(crate) fn new(id: Url, actor: &ApUser, note: &ApNote) -> Like {
+        Like {
+            actor: actor.id().into(),
+            object: note.id().into(),
+            kind: Default::default(),
+            id,
+        }
+    }
+
+    pub async fn send(
+        actor: &ApUser,
+        author: &ApUser,
+        note: &ApNote,
+        data: &Data<Arc<AppState>>,
+    ) -> anyhow::Result<Url> {
+        let id = generate_activity_id(&actor.ap_id, LikeType::Like)?;
+        let activity = Like::new(id.clone(), actor, note);
+
+        let inboxes = vec![author.shared_inbox_or_inbox()];
+        queue_activity(&activity, actor, inboxes, data).await?;
+
+        Ok(id)
+    }
 }
 
 #[async_trait]
@@ -50,8 +80,15 @@ impl ActivityHandler for Like {
         let actor = self.actor.dereference(data).await?;
         let post = self.object.dereference(data).await?;
 
-        if PostLike::create(self.id.to_string(), &post, &actor, &data.db_pool).await? {
-            notifications::process_like(&post, &actor, false, &data.db_pool).await?;
+        if PostLike::create(Some(self.id.to_string()), &post, &actor, &data.db_pool).await? {
+            notifications::process_like(
+                &post,
+                &actor,
+                &post.author(&data.db_pool).await?,
+                false,
+                &data.db_pool,
+            )
+            .await?;
         }
 
         Ok(())

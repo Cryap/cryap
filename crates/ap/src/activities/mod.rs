@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use activitypub_federation::{config::Data, traits::ActivityHandler};
-use db::models::ReceivedActivity;
+use db::{models::ReceivedActivity, types::DbId};
 use diesel::result::{DatabaseErrorKind, Error::DatabaseError};
 use serde::{Deserialize, Serialize};
-use url::Url;
+use url::{ParseError, Url};
 use web::AppState;
 
 pub mod accept;
@@ -31,6 +31,58 @@ pub enum UserInbox {
     Announce(announce::Announce),
     UndoAnnounce(undo::announce::UndoAnnounce),
     Update(update::Update),
+}
+
+pub fn generate_activity_id<T>(ap_id: &str, kind: T) -> Result<Url, ParseError>
+where
+    T: ToString,
+{
+    let id = format!(
+        "{}/activities/{}/{}",
+        ap_id,
+        kind.to_string().to_lowercase(),
+        DbId::default().to_string()
+    );
+    Url::parse(&id)
+}
+
+pub fn generate_undo_activity_id<T>(ap_id: &str, kind: T) -> Result<Url, ParseError>
+where
+    T: ToString,
+{
+    let id = format!(
+        "{}/activities/undo/{}/{}",
+        ap_id,
+        kind.to_string().to_lowercase(),
+        DbId::default().to_string()
+    );
+    Url::parse(&id)
+}
+
+pub fn generate_accept_activity_id<T>(ap_id: &str, kind: T) -> Result<Url, ParseError>
+where
+    T: ToString,
+{
+    let id = format!(
+        "{}/activities/accept/{}/{}",
+        ap_id,
+        kind.to_string().to_lowercase(),
+        DbId::default().to_string()
+    );
+    Url::parse(&id)
+}
+
+pub fn generate_reject_activity_id<T>(ap_id: &str, kind: T) -> Result<Url, ParseError>
+where
+    T: ToString,
+{
+    let id = format!(
+        "{}/activities/reject/{}/{}",
+        ap_id,
+        kind.to_string().to_lowercase(),
+        DbId::default().to_string()
+    );
+    Url::parse(&id)
 }
 
 pub async fn is_duplicate(ap_id: &Url, data: &Data<Arc<AppState>>) -> anyhow::Result<bool> {

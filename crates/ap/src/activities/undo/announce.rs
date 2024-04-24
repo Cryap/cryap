@@ -70,7 +70,14 @@ impl ActivityHandler for UndoAnnounce {
         .execute(&mut conn)
         .await;
 
-        notifications::process_boost(&post, &actor, true, &data.db_pool).await?;
+        notifications::process_boost(
+            &post,
+            &actor,
+            &post.author(&data.db_pool).await?,
+            true,
+            &data.db_pool,
+        )
+        .await?;
 
         Ok(())
     }

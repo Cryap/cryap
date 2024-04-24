@@ -1,5 +1,11 @@
 use chrono::{DateTime, Utc};
-use diesel::{dsl::sql, prelude::*, result::Error::NotFound, select, sql_types::Bool};
+use diesel::{
+    dsl::sql,
+    prelude::*,
+    result::Error::NotFound,
+    select, sql_query,
+    sql_types::{Bool, Bpchar, Varchar},
+};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
 use crate::{
@@ -60,6 +66,12 @@ pub struct UserRelationship {
     pub following: bool,
     pub followed_by: bool,
     pub wants_to_follow: bool,
+}
+
+#[derive(QueryableByName)]
+struct FollowIdResult {
+    #[diesel(sql_type = Varchar)]
+    coalesce: String,
 }
 
 impl User {
@@ -277,12 +289,39 @@ impl User {
         UserFollowRequest::by_user(&self.id, pagination, db_pool).await
     }
 
+    pub async fn follow_id(
+        &self,
+        user: &User,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Option<String>> {
+        Ok(sql_query(
+            "
+            SELECT COALESCE(
+                user_followers.ap_id, user_follow_requests.ap_id
+            ) 
+            FROM user_followers
+            FULL JOIN user_follow_requests ON user_followers.actor_id = user_follow_requests.actor_id 
+                AND user_followers.follower_id = user_follow_requests.follower_id 
+            WHERE user_followers.actor_id = $1 
+                AND user_followers.follower_id = $2;
+            ",
+        )
+        .bind::<Bpchar, _>(self.id.clone())
+        .bind::<Bpchar, _>(user.id.clone())
+        .load::<FollowIdResult>(&mut db_pool.get().await?)
+        .await?
+        .into_iter()
+        .next()
+        .map(|result| result.coalesce))
+    }
+
     pub async fn reached_inboxes(
         &self,
         db_pool: &Pool<AsyncPgConnection>,
     ) -> anyhow::Result<Vec<String>> {
         Ok(user_followers::table
             .filter(user_followers::follower_id.eq(&self.id))
+            .filter(users::local.eq(false))
             .inner_join(users::dsl::users.on(users::id.eq(user_followers::actor_id)))
             .select(coalesce(users::shared_inbox_uri, users::inbox_uri))
             .distinct()

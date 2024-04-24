@@ -1,24 +1,23 @@
 use std::sync::Arc;
 
 use activitypub_federation::{
-    activity_queue::queue_activity,
-    config::Data,
-    fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
-    traits::{Actor, Object},
+    config::Data, fetch::webfinger::webfinger_resolve_actor, traits::Actor,
 };
 use ap::{
     activities::{create::note::CreateNote, like::Like, undo::like::UndoLike},
     common::notifications,
-    objects::{announce::ApAnnounce, note::ApNote, user::ApUser},
+    objects::{
+        announce::{Announce, ApAnnounce},
+        note::ApNote,
+        user::ApUser,
+    },
 };
 use chrono::Utc;
 use db::{
     models::{Post, PostBoost, PostLike, PostMention, User},
-    schema::{post_boost, post_like, post_mention, posts},
     types::{DbId, DbVisibility},
 };
-use diesel::{delete, insert_into, ExpressionMethods, QueryDsl};
-use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
+use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection};
 use url::Url;
 use web::AppState;
 
@@ -101,8 +100,11 @@ fn match_mentions(content: String) -> Vec<String> {
         .collect()
 }
 
-pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> anyhow::Result<Post> {
-    let mut conn = data.db_pool.get().await?;
+pub async fn post(
+    user: &User,
+    options: NewPost,
+    data: &Data<Arc<AppState>>,
+) -> anyhow::Result<Post> {
     let id = DbId::default();
     let ap_id = format!(
         "https://{}/p/{}",
@@ -111,7 +113,6 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
     );
 
     let mut content = options.content;
-
     let mut mentions: Vec<ApUser> = vec![];
 
     for mention in match_mentions(content.clone()) {
@@ -134,13 +135,22 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
         mentions.push(user);
     }
 
-    let object = Post {
-        id: id.clone(),
+    let mentions_data: Vec<PostMention> = mentions
+        .iter()
+        .map(|mention| PostMention {
+            id: DbId::default(),
+            post_id: id.clone(),
+            mentioned_user_id: mention.id.clone(),
+        })
+        .collect();
+
+    let post = Post {
+        id,
         url: ap_id.clone(),
         ap_id,
         updated: None,
         quote: options.quote.map(|p| p.id),
-        author: by.id.clone(),
+        author: user.id.clone(),
         content, // validation should be performed before post() call
         in_reply: options.in_reply.map(|p| p.id),
         sensitive: options.sensitive,
@@ -150,28 +160,15 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
         content_warning: options.content_warning,
     };
 
-    let mentions_data: Vec<PostMention> = mentions
-        .iter()
-        .map(move |mention| PostMention {
-            id: DbId::default(),
-            post_id: id.clone(),
-            mentioned_user_id: mention.id.clone(),
-        })
-        .collect();
-
     if !options.local_only {
-        let activity = CreateNote::from(
-            ApNote(object.clone())
-                .into_json_mentions(data, &mentions)
-                .await?,
-        );
-        let inboxes = if object.visibility == DbVisibility::Direct {
+        let inboxes = if post.visibility == DbVisibility::Direct {
             mentions
                 .iter()
+                .filter(|mention| !mention.local)
                 .map(|mention| mention.shared_inbox_or_inbox().to_string())
                 .collect()
         } else {
-            let mut inboxes = by.reached_inboxes(&data.db_pool).await?;
+            let mut inboxes = user.reached_inboxes(&data.db_pool).await?;
             inboxes.extend(
                 mentions
                     .iter()
@@ -180,9 +177,10 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
             inboxes
         };
 
-        queue_activity(
-            &activity,
-            &ApUser(by.clone()),
+        CreateNote::send(
+            ApNote(post.clone()),
+            &ApUser(user.clone()),
+            &mentions,
             inboxes
                 .into_iter()
                 .map(|inbox| Url::parse(&inbox))
@@ -192,24 +190,9 @@ pub async fn post(by: &User, options: NewPost, data: &Data<Arc<AppState>>) -> an
         .await?;
     }
 
-    insert_into(posts::dsl::posts)
-        .values(vec![object.clone()])
-        .execute(&mut conn)
-        .await?;
-
-    insert_into(post_mention::dsl::post_mention)
-        .values(mentions_data)
-        .on_conflict((
-            post_mention::dsl::post_id,
-            post_mention::dsl::mentioned_user_id,
-        ))
-        .do_nothing()
-        .execute(&mut conn)
-        .await?;
-
-    notifications::process_post(&object, &data.db_pool).await?;
-
-    Ok(object)
+    let post = Post::create(post, mentions_data, &data.db_pool).await?;
+    notifications::process_post(&post, &data.db_pool).await?;
+    Ok(post)
 }
 
 pub async fn boost(
@@ -218,11 +201,10 @@ pub async fn boost(
     visibility: DbVisibility,
     data: &Data<Arc<AppState>>,
 ) -> anyhow::Result<PostBoost> {
-    let mut conn = data.db_pool.get().await?;
     let id = DbId::default();
-    let ap_id = format!("{}/activities/boosts/{}", user.ap_id, id.to_string());
+    let ap_id = format!("{}/activities/boost/{}", user.ap_id, id.to_string());
 
-    let object = PostBoost {
+    let boost = PostBoost {
         id,
         ap_id,
         post_id: post.id.clone(),
@@ -231,18 +213,19 @@ pub async fn boost(
         published: Utc::now(),
     };
 
+    let author = post.author(&data.db_pool).await?;
     if !post.local_only {
-        let activity = ApAnnounce(object.clone()).into_json(data).await?;
-
         let user = ApUser(user.clone());
         let mut inboxes = user.reached_inboxes(&data.db_pool).await?;
-        let author_inbox = user.shared_inbox_or_inbox().to_string();
-        if !inboxes.contains(&author_inbox) {
-            inboxes.push(author_inbox);
+        if !author.local {
+            let author_inbox = user.shared_inbox_or_inbox().to_string();
+            if !inboxes.contains(&author_inbox) {
+                inboxes.push(author_inbox);
+            }
         }
 
-        queue_activity(
-            &activity,
+        Announce::send(
+            ApAnnounce(boost.clone()),
             &user,
             inboxes
                 .into_iter()
@@ -253,90 +236,55 @@ pub async fn boost(
         .await?;
     }
 
-    let object_db = insert_into(post_boost::dsl::post_boost)
-        .values(vec![object])
-        .on_conflict((post_boost::actor_id, post_boost::post_id))
-        .do_nothing()
-        .get_result::<PostBoost>(&mut conn)
-        .await?;
-
-    notifications::process_boost(post, user, false, &data.db_pool).await?;
-
-    Ok(object_db)
+    let boost = PostBoost::create(boost, &data.db_pool).await?;
+    notifications::process_boost(post, user, &author, false, &data.db_pool).await?;
+    Ok(boost)
 }
 
 pub async fn like(user: &User, post: &Post, data: &Data<Arc<AppState>>) -> anyhow::Result<()> {
-    let mut conn = data.db_pool.get().await?;
-    let id = Url::parse(&format!(
-        "{}/activities/likes/{}",
-        user.ap_id,
-        DbId::default().to_string()
-    ))?;
-    let activity = Like {
-        id: id.clone(),
-        kind: Default::default(),
-        actor: ObjectId::<ApUser>::from(Url::parse(&user.ap_id)?),
-        object: ObjectId::<ApNote>::from(Url::parse(&post.ap_id)?),
+    let author = post.author(&data.db_pool).await?;
+    let id = if author.local {
+        None
+    } else {
+        Some(
+            Like::send(
+                &ApUser(user.clone()),
+                &ApUser(author.clone()),
+                &ApNote(post.clone()),
+                data,
+            )
+            .await?
+            .to_string(),
+        )
     };
 
-    let inboxes = vec![ApUser(post.author(&data.db_pool).await?).shared_inbox_or_inbox()];
-    queue_activity(&activity, &ApUser(user.clone()), inboxes, data).await?;
-
-    insert_into(post_like::dsl::post_like)
-        .values(vec![PostLike {
-            actor_id: user.id.clone(),
-            post_id: post.id.clone(),
-            ap_id: id.to_string(),
-            published: Utc::now(),
-        }])
-        .on_conflict((post_like::actor_id, post_like::post_id))
-        .do_nothing()
-        .execute(&mut conn)
-        .await?;
-
-    notifications::process_like(post, user, false, &data.db_pool).await?;
+    PostLike::create(id, &post, &user, &data.db_pool).await?;
+    notifications::process_like(post, user, &author, false, &data.db_pool).await?;
 
     Ok(())
 }
 
 pub async fn unlike(user: &User, post: &Post, data: &Data<Arc<AppState>>) -> anyhow::Result<()> {
-    let mut conn = data.db_pool.get().await?;
-    let undo_id = Url::parse(&format!(
-        "{}/activities/undo/likes/{}",
-        user.ap_id,
-        DbId::default().to_string()
-    ))?;
-    let like_id = post_like::table
-        .select(post_like::ap_id)
-        .filter(post_like::actor_id.eq(user.id.clone()))
-        .filter(post_like::post_id.eq(post.id.clone()))
-        .first::<String>(&mut conn)
-        .await?;
+    let author = post.author(&data.db_pool).await?;
+    if !author.local {
+        let like = PostLike::by_post_and_actor(post, user, &data.db_pool).await?;
+        if let Some(like) = like {
+            let like_id = like.ap_id.unwrap(); // Panic safety: only local likes don't have ap_id
+            UndoLike::send(
+                Url::parse(&like_id)?,
+                &ApUser(user.clone()),
+                &ApUser(author.clone()),
+                &ApNote(post.clone()),
+                data,
+            )
+            .await?;
+        } else {
+            return Ok(());
+        }
+    }
 
-    let activity = UndoLike {
-        actor: ObjectId::<ApUser>::from(Url::parse(&user.ap_id)?),
-        object: Like {
-            id: Url::parse(&like_id)?,
-            kind: Default::default(),
-            actor: ObjectId::<ApUser>::from(Url::parse(&user.ap_id)?),
-            object: ObjectId::<ApNote>::from(Url::parse(&post.ap_id)?),
-        },
-        kind: Default::default(),
-        id: undo_id,
-    };
-
-    let inboxes = vec![ApUser(post.author(&data.db_pool).await?).shared_inbox_or_inbox()];
-    queue_activity(&activity, &ApUser(user.clone()), inboxes, data).await?;
-
-    let _ = delete(
-        post_like::table
-            .filter(post_like::actor_id.eq(user.id.clone()))
-            .filter(post_like::post_id.eq(post.id.clone())),
-    )
-    .execute(&mut conn)
-    .await;
-
-    notifications::process_like(post, user, true, &data.db_pool).await?;
+    PostLike::delete(None, &post, &user, &data.db_pool).await?;
+    notifications::process_like(post, user, &author, true, &data.db_pool).await?;
 
     Ok(())
 }

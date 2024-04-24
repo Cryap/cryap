@@ -40,6 +40,28 @@ pub struct PostRelationship {
 }
 
 impl Post {
+    pub async fn create(
+        post: Self,
+        mentions: Vec<PostMention>,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Self> {
+        let mut conn = db_pool.get().await?;
+
+        let post = insert_into(posts::table)
+            .values(vec![post])
+            .get_result::<Self>(&mut conn)
+            .await?;
+
+        insert_into(post_mention::table)
+            .values(mentions)
+            .on_conflict((post_mention::post_id, post_mention::mentioned_user_id))
+            .do_nothing()
+            .execute(&mut conn)
+            .await?;
+
+        Ok(post)
+    }
+
     pub async fn by_id(
         id: &DbId,
         db_pool: &Pool<AsyncPgConnection>,

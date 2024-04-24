@@ -73,18 +73,18 @@ pub async fn process_post(post: &Post, db_pool: &Pool<AsyncPgConnection>) -> any
 pub async fn process_like(
     post: &Post,
     by: &User,
+    author: &User,
     do_opposite: bool,
     db_pool: &Pool<AsyncPgConnection>,
 ) -> anyhow::Result<()> {
-    let author = post.author(db_pool).await?;
-    if !author.local {
+    if !author.local || by.id == author.id {
         return Ok(());
     }
 
     if do_opposite {
         Notification::delete(
             by,
-            &author,
+            author,
             Some(post),
             DbNotificationType::Favourite,
             db_pool,
@@ -93,7 +93,7 @@ pub async fn process_like(
     } else {
         let notification = Notification::create(
             by,
-            &author,
+            author,
             Some(post),
             DbNotificationType::Favourite,
             db_pool,
@@ -110,19 +110,19 @@ pub async fn process_like(
 pub async fn process_boost(
     post: &Post,
     by: &User,
+    author: &User,
     do_opposite: bool,
     db_pool: &Pool<AsyncPgConnection>,
 ) -> anyhow::Result<()> {
-    let author = post.author(db_pool).await?;
-    if !author.local {
+    if !author.local || by.id == author.id {
         return Ok(());
     }
 
     if do_opposite {
-        Notification::delete(by, &author, Some(post), DbNotificationType::Reblog, db_pool).await?;
+        Notification::delete(by, author, Some(post), DbNotificationType::Reblog, db_pool).await?;
     } else {
         let notification =
-            Notification::create(by, &author, Some(post), DbNotificationType::Reblog, db_pool)
+            Notification::create(by, author, Some(post), DbNotificationType::Reblog, db_pool)
                 .await?;
         EVENT_BUS
             .send(&author.id, StreamingEvent::notification(notification))

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use activitypub_federation::{
+    activity_queue::queue_activity,
     config::Data,
     traits::{ActivityHandler, Object},
 };
@@ -9,7 +10,24 @@ use url::Url;
 use web::AppState;
 
 pub use crate::objects::announce::Announce;
-use crate::{activities::is_duplicate, common::notifications, objects::announce::ApAnnounce};
+use crate::{
+    activities::is_duplicate,
+    common::notifications,
+    objects::{announce::ApAnnounce, user::ApUser},
+};
+
+impl Announce {
+    pub async fn send(
+        announce: ApAnnounce,
+        actor: &ApUser,
+        inboxes: Vec<Url>,
+        data: &Data<Arc<AppState>>,
+    ) -> anyhow::Result<()> {
+        let activity = announce.into_json(data).await?;
+        queue_activity(&activity, actor, inboxes, data).await?;
+        Ok(())
+    }
+}
 
 #[async_trait]
 impl ActivityHandler for Announce {
@@ -37,7 +55,14 @@ impl ActivityHandler for Announce {
         let actor = self.actor.dereference(data).await?;
         let post = self.object.dereference(data).await?;
         ApAnnounce::from_json(self, data).await?;
-        notifications::process_boost(&post, &actor, false, &data.db_pool).await?;
+        notifications::process_boost(
+            &post,
+            &actor,
+            &post.author(&data.db_pool).await?,
+            false,
+            &data.db_pool,
+        )
+        .await?;
 
         Ok(())
     }

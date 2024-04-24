@@ -9,17 +9,14 @@ use activitypub_federation::{
     traits::{ActivityHandler, Actor},
 };
 use async_trait::async_trait;
-use db::{
-    models::{user_follow_request::UserFollowRequest, user_follower::UserFollower, User},
-    types::DbId,
-};
+use db::models::{user_follow_request::UserFollowRequest, user_follower::UserFollower};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
 use web::AppState;
 
 use crate::{
-    activities::{accept::follow::AcceptFollow, is_duplicate},
+    activities::{accept::follow::AcceptFollow, generate_activity_id, is_duplicate},
     common::notifications,
     objects::user::ApUser,
 };
@@ -38,20 +35,28 @@ pub struct Follow {
 }
 
 impl Follow {
-    pub fn new(id: Option<DbId>, by: User, to: User) -> Self {
-        let id = Url::parse(&format!(
-            "{}/activities/follows/{}",
-            by.ap_id,
-            id.unwrap_or_default()
-        ))
-        .unwrap(); // TODO: Review
-        Self {
-            id: id.clone(),
+    pub(crate) fn new(id: Url, actor: &ApUser, object: &ApUser) -> Follow {
+        Follow {
+            actor: actor.id().into(),
+            object: object.id().into(),
+            to: Some([ObjectId::<ApUser>::from(object.id())]),
             kind: Default::default(),
-            actor: ObjectId::<ApUser>::from(Url::parse(&by.ap_id).unwrap()),
-            object: ObjectId::<ApUser>::from(Url::parse(&to.ap_id).unwrap()),
-            to: Some([ObjectId::<ApUser>::from(Url::parse(&to.ap_id).unwrap())]),
+            id,
         }
+    }
+
+    pub async fn send(
+        actor: &ApUser,
+        object: &ApUser,
+        data: &Data<Arc<AppState>>,
+    ) -> anyhow::Result<Url> {
+        let id = generate_activity_id(&actor.ap_id, FollowType::Follow)?;
+        let activity = Follow::new(id.clone(), actor, object);
+
+        let inboxes = vec![object.shared_inbox_or_inbox()];
+        queue_activity(&activity, actor, inboxes, data).await?;
+
+        Ok(id)
     }
 }
 
@@ -81,29 +86,22 @@ impl ActivityHandler for Follow {
         let followed = self.object.dereference(data).await?;
 
         if followed.manually_approves_followers {
-            if UserFollowRequest::create(&actor, &followed, self.id.to_string(), &data.db_pool)
-                .await?
+            if UserFollowRequest::create(
+                &actor,
+                &followed,
+                Some(self.id.to_string()),
+                &data.db_pool,
+            )
+            .await?
             {
                 notifications::process_follow_request(&actor, &followed, false, &data.db_pool)
                     .await?;
             }
         } else {
-            if UserFollower::create(&actor, &followed, self.id.to_string(), &data.db_pool).await? {
-                let activity = AcceptFollow {
-                    actor: ObjectId::<ApUser>::from(Url::parse(&followed.ap_id)?),
-                    object: self,
-                    kind: Default::default(),
-                    to: Some([ObjectId::<ApUser>::from(Url::parse(&actor.ap_id)?)]),
-                    id: Url::parse(&format!(
-                        "{}/activities/accept/follows/{}",
-                        followed.ap_id,
-                        DbId::default()
-                    ))?,
-                };
-
-                let inboxes = vec![actor.shared_inbox_or_inbox()];
-                queue_activity(&activity, &followed, inboxes, data).await?;
-
+            if UserFollower::create(&actor, &followed, Some(self.id.to_string()), &data.db_pool)
+                .await?
+            {
+                AcceptFollow::send(self.id, &followed, &actor, data).await?;
                 notifications::process_follow(&actor, &followed, false, &data.db_pool).await?;
             }
         }

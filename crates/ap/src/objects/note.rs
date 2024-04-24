@@ -126,6 +126,10 @@ pub struct Note {
 }
 
 impl ApNote {
+    pub fn id(&self) -> Url {
+        Url::parse(&self.ap_id).unwrap() // should never panic in theory
+    }
+
     pub async fn into_json_mentions(
         self,
         data: &Data<Arc<AppState>>,
@@ -135,7 +139,6 @@ impl ApNote {
             return Err(anyhow!("Cannot federate local-only object"));
         }
 
-        let _ap_id = self.ap_id.clone();
         let published = self.published;
 
         let attributed_to = match User::by_id(&self.author, &data.db_pool).await? {

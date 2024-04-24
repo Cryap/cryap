@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use diesel::{prelude::*, result::Error::NotFound};
+use diesel::{insert_into, prelude::*, result::Error::NotFound};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
 use crate::{
@@ -21,6 +21,15 @@ pub struct PostBoost {
 }
 
 impl PostBoost {
+    pub async fn create(boost: Self, db_pool: &Pool<AsyncPgConnection>) -> anyhow::Result<Self> {
+        Ok(insert_into(post_boost::table)
+            .values(vec![boost])
+            .on_conflict((post_boost::actor_id, post_boost::post_id))
+            .do_nothing()
+            .get_result::<Self>(&mut db_pool.get().await?)
+            .await?)
+    }
+
     pub async fn by_id(
         id: &DbId,
         db_pool: &Pool<AsyncPgConnection>,

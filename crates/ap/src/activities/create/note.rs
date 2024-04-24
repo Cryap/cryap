@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use activitypub_federation::{
+    activity_queue::queue_activity,
     config::Data,
     fetch::object_id::ObjectId,
     kinds::activity::CreateType,
@@ -28,6 +29,20 @@ pub struct CreateNote {
     #[serde(rename = "type")]
     pub(crate) kind: CreateType,
     pub(crate) id: Url,
+}
+
+impl CreateNote {
+    pub async fn send(
+        note: ApNote,
+        actor: &ApUser,
+        mentions: &Vec<ApUser>,
+        inboxes: Vec<Url>,
+        data: &Data<Arc<AppState>>,
+    ) -> anyhow::Result<()> {
+        let activity = CreateNote::from(note.into_json_mentions(data, mentions).await?);
+        queue_activity(&activity, actor, inboxes, data).await?;
+        Ok(())
+    }
 }
 
 impl From<Note> for CreateNote {

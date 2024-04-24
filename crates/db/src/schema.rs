@@ -77,9 +77,9 @@ diesel::table! {
 }
 
 diesel::table! {
-    post_like (ap_id) {
+    post_like (post_id, actor_id) {
         #[max_length = 200]
-        ap_id -> Varchar,
+        ap_id -> Nullable<Varchar>,
         #[max_length = 27]
         post_id -> Bpchar,
         #[max_length = 27]

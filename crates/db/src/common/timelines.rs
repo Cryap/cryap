@@ -317,6 +317,10 @@ async fn follows(
     db_pool: &Pool<AsyncPgConnection>,
 ) -> anyhow::Result<bool> {
     if let Some(actor_id) = actor_id {
+        if user_id == actor_id {
+            return Ok(true);
+        }
+
         let result = user_followers::table
             .select(sql::<Bool>("true"))
             .filter(user_followers::actor_id.eq(actor_id))

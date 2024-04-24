@@ -1,7 +1,11 @@
 use std::sync::Arc;
 
 use activitypub_federation::{
-    config::Data, fetch::object_id::ObjectId, kinds::activity::UndoType, traits::ActivityHandler,
+    activity_queue::queue_activity,
+    config::Data,
+    fetch::object_id::ObjectId,
+    kinds::activity::{LikeType, UndoType},
+    traits::{ActivityHandler, Actor},
 };
 use async_trait::async_trait;
 use db::models::PostLike;
@@ -10,9 +14,9 @@ use url::Url;
 use web::AppState;
 
 use crate::{
-    activities::{is_duplicate, like::Like},
+    activities::{generate_undo_activity_id, is_duplicate, like::Like},
     common::notifications,
-    objects::user::ApUser,
+    objects::{note::ApNote, user::ApUser},
 };
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -23,6 +27,29 @@ pub struct UndoLike {
     #[serde(rename = "type")]
     pub kind: UndoType,
     pub id: Url,
+}
+
+impl UndoLike {
+    pub async fn send(
+        like_id: Url,
+        actor: &ApUser,
+        author: &ApUser,
+        note: &ApNote,
+        data: &Data<Arc<AppState>>,
+    ) -> anyhow::Result<Url> {
+        let id = generate_undo_activity_id(&actor.ap_id, LikeType::Like)?;
+        let activity = UndoLike {
+            actor: actor.id().into(),
+            object: Like::new(like_id, actor, note),
+            kind: Default::default(),
+            id: id.clone(),
+        };
+
+        let inboxes = vec![author.shared_inbox_or_inbox()];
+        queue_activity(&activity, actor, inboxes, data).await?;
+
+        Ok(id)
+    }
 }
 
 #[async_trait]
@@ -58,8 +85,22 @@ impl ActivityHandler for UndoLike {
         let actor = self.actor.dereference(data).await?;
         let post = self.object.object.dereference(data).await?;
 
-        if PostLike::delete(self.object.id.to_string(), &post, &actor, &data.db_pool).await? {
-            notifications::process_like(&post, &actor, true, &data.db_pool).await?;
+        if PostLike::delete(
+            Some(self.object.id.to_string()),
+            &post,
+            &actor,
+            &data.db_pool,
+        )
+        .await?
+        {
+            notifications::process_like(
+                &post,
+                &actor,
+                &post.author(&data.db_pool).await?,
+                true,
+                &data.db_pool,
+            )
+            .await?;
         }
 
         Ok(())

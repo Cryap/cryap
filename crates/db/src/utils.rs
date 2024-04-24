@@ -1,6 +1,6 @@
 use diesel::{
     sql_function,
-    sql_types::{Nullable, Text},
+    sql_types::{Nullable, Varchar},
 };
 use rand::{distributions::Alphanumeric, Rng};
 
@@ -12,4 +12,4 @@ pub fn random_string(size: usize) -> String {
         .collect()
 }
 
-sql_function! { fn coalesce(x: Nullable<Text>, y: Text) -> Text; }
+sql_function! { fn coalesce(x: Nullable<Varchar>, y: Varchar) -> Varchar; }

@@ -1,8 +1,12 @@
 use std::sync::Arc;
 
 use activitypub_federation::{
-    config::Data, fetch::object_id::ObjectId, kinds::activity::AcceptType,
-    protocol::helpers::deserialize_skip_error, traits::ActivityHandler,
+    activity_queue::queue_activity,
+    config::Data,
+    fetch::object_id::ObjectId,
+    kinds::activity::{AcceptType, FollowType},
+    protocol::helpers::deserialize_skip_error,
+    traits::{ActivityHandler, Actor},
 };
 use async_trait::async_trait;
 use db::models::{user_follow_request::UserFollowRequest, user_follower::UserFollower};
@@ -11,7 +15,7 @@ use url::Url;
 use web::AppState;
 
 use crate::{
-    activities::{follow::Follow, is_duplicate},
+    activities::{follow::Follow, generate_accept_activity_id, is_duplicate},
     objects::user::ApUser,
 };
 
@@ -25,6 +29,29 @@ pub struct AcceptFollow {
     #[serde(rename = "type")]
     pub kind: AcceptType,
     pub id: Url,
+}
+
+impl AcceptFollow {
+    pub async fn send(
+        follow_id: Url,
+        actor: &ApUser,
+        object: &ApUser,
+        data: &Data<Arc<AppState>>,
+    ) -> anyhow::Result<Url> {
+        let id = generate_accept_activity_id(&actor.ap_id, FollowType::Follow)?;
+        let activity = AcceptFollow {
+            actor: actor.id().into(),
+            to: Some([ObjectId::<ApUser>::from(object.id())]),
+            object: Follow::new(follow_id, object, actor),
+            kind: Default::default(),
+            id: id.clone(),
+        };
+
+        let inboxes = vec![object.shared_inbox_or_inbox()];
+        queue_activity(&activity, actor, inboxes, data).await?;
+
+        Ok(id)
+    }
 }
 
 #[async_trait]
@@ -60,10 +87,21 @@ impl ActivityHandler for AcceptFollow {
         let actor = self.actor.dereference(data).await?;
         let followed = self.object.actor.dereference(data).await?;
 
-        if UserFollowRequest::delete(&followed, &actor, self.object.id.to_string(), &data.db_pool)
-            .await?
+        if UserFollowRequest::delete(
+            &followed,
+            &actor,
+            Some(self.object.id.to_string()),
+            &data.db_pool,
+        )
+        .await?
         {
-            UserFollower::create(&followed, &actor, self.id.to_string(), &data.db_pool).await?;
+            UserFollower::create(
+                &followed,
+                &actor,
+                Some(self.object.id.to_string()),
+                &data.db_pool,
+            )
+            .await?;
         }
 
         Ok(())

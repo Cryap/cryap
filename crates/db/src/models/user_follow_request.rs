@@ -31,14 +31,14 @@ impl UserFollowRequest {
     pub async fn create(
         actor: &User,
         follower: &User,
-        ap_id: String,
+        ap_id: Option<String>,
         db_pool: &Pool<AsyncPgConnection>,
     ) -> anyhow::Result<bool> {
         let rows_affected = insert_into(user_follow_requests::table)
             .values(vec![UserFollowRequestsInsert {
                 actor_id: actor.id.clone(),
                 follower_id: follower.id.clone(),
-                ap_id: Some(ap_id),
+                ap_id,
             }])
             .on_conflict((
                 user_follow_requests::actor_id,
@@ -55,18 +55,29 @@ impl UserFollowRequest {
     pub async fn delete(
         actor: &User,
         follower: &User,
-        ap_id: String,
+        ap_id: Option<String>,
         db_pool: &Pool<AsyncPgConnection>,
     ) -> anyhow::Result<bool> {
-        let rows_affected = delete(
-            user_follow_requests::table
-                .filter(user_follow_requests::actor_id.eq(actor.id.clone()))
-                .filter(user_follow_requests::follower_id.eq(follower.id.clone()))
-                .filter(user_follow_requests::ap_id.eq(ap_id)),
-        )
-        .execute(&mut db_pool.get().await?)
-        .await
-        .optional()?;
+        let rows_affected = if let Some(ap_id) = ap_id {
+            delete(
+                user_follow_requests::table
+                    .filter(user_follow_requests::actor_id.eq(actor.id.clone()))
+                    .filter(user_follow_requests::follower_id.eq(follower.id.clone()))
+                    .filter(user_follow_requests::ap_id.eq(ap_id)),
+            )
+            .execute(&mut db_pool.get().await?)
+            .await
+            .optional()?
+        } else {
+            delete(
+                user_follow_requests::table
+                    .filter(user_follow_requests::actor_id.eq(actor.id.clone()))
+                    .filter(user_follow_requests::follower_id.eq(follower.id.clone())),
+            )
+            .execute(&mut db_pool.get().await?)
+            .await
+            .optional()?
+        };
 
         Ok(rows_affected == Some(1))
     }
