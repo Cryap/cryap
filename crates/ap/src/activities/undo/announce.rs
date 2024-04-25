@@ -4,9 +4,7 @@ use activitypub_federation::{
     config::Data, fetch::object_id::ObjectId, kinds::activity::UndoType, traits::ActivityHandler,
 };
 use async_trait::async_trait;
-use db::{schema, schema::post_boost::dsl::post_boost};
-use diesel::{delete, prelude::*};
-use diesel_async::RunQueryDsl;
+use db::models::PostBoost;
 use serde::{Deserialize, Serialize};
 use url::Url;
 use web::AppState;
@@ -57,27 +55,19 @@ impl ActivityHandler for UndoAnnounce {
             return Ok(());
         }
 
-        let mut conn = data.db_pool.get().await?;
-
         let actor = self.actor.dereference(data).await?;
         let post = self.object.object.dereference(data).await?;
 
-        let _ = delete(
-            post_boost
-                .filter(schema::post_boost::actor_id.eq(actor.id.clone()))
-                .filter(schema::post_boost::post_id.eq(post.id.clone())),
-        )
-        .execute(&mut conn)
-        .await;
-
-        notifications::process_boost(
-            &post,
-            &actor,
-            &post.author(&data.db_pool).await?,
-            true,
-            &data.db_pool,
-        )
-        .await?;
+        if PostBoost::delete(&actor, &post, &data.db_pool).await? {
+            notifications::process_boost(
+                &post,
+                &actor,
+                &post.author(&data.db_pool).await?,
+                true,
+                &data.db_pool,
+            )
+            .await?;
+        }
 
         Ok(())
     }

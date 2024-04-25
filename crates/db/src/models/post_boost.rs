@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use diesel::{insert_into, prelude::*, result::Error::NotFound};
+use diesel::{delete, insert_into, prelude::*, result::Error::NotFound};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
 use crate::{
@@ -28,6 +28,23 @@ impl PostBoost {
             .do_nothing()
             .get_result::<Self>(&mut db_pool.get().await?)
             .await?)
+    }
+
+    pub async fn delete(
+        actor: &User,
+        post: &Post,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<bool> {
+        let rows_affected = delete(
+            post_boost::table
+                .filter(post_boost::actor_id.eq(actor.id.clone()))
+                .filter(post_boost::post_id.eq(post.id.clone())),
+        )
+        .execute(&mut db_pool.get().await?)
+        .await
+        .optional()?;
+
+        Ok(rows_affected == Some(1))
     }
 
     pub async fn by_id(
