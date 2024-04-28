@@ -41,7 +41,7 @@ where
         "{}/activities/{}/{}",
         ap_id,
         kind.to_string().to_lowercase(),
-        DbId::default().to_string()
+        DbId::default()
     );
     Url::parse(&id)
 }
@@ -54,7 +54,7 @@ where
         "{}/activities/undo/{}/{}",
         ap_id,
         kind.to_string().to_lowercase(),
-        DbId::default().to_string()
+        DbId::default()
     );
     Url::parse(&id)
 }
@@ -67,7 +67,7 @@ where
         "{}/activities/accept/{}/{}",
         ap_id,
         kind.to_string().to_lowercase(),
-        DbId::default().to_string()
+        DbId::default()
     );
     Url::parse(&id)
 }
@@ -80,7 +80,7 @@ where
         "{}/activities/reject/{}/{}",
         ap_id,
         kind.to_string().to_lowercase(),
-        DbId::default().to_string()
+        DbId::default()
     );
     Url::parse(&id)
 }

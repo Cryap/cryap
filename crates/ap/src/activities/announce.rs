@@ -43,12 +43,12 @@ impl ActivityHandler for Announce {
     }
 
     async fn verify(&self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
-        ApAnnounce::verify(&self, &self.actor.inner(), data).await?;
+        ApAnnounce::verify(self, self.actor.inner(), data).await?;
         Ok(())
     }
 
     async fn receive(self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
-        if is_duplicate(&self.id(), data).await? {
+        if is_duplicate(self.id(), data).await? {
             return Ok(());
         }
 

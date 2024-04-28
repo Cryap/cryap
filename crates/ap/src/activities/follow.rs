@@ -97,13 +97,11 @@ impl ActivityHandler for Follow {
                 notifications::process_follow_request(&actor, &followed, false, &data.db_pool)
                     .await?;
             }
-        } else {
-            if UserFollower::create(&actor, &followed, Some(self.id.to_string()), &data.db_pool)
-                .await?
-            {
-                AcceptFollow::send(self.id, &followed, &actor, data).await?;
-                notifications::process_follow(&actor, &followed, false, &data.db_pool).await?;
-            }
+        } else if UserFollower::create(&actor, &followed, Some(self.id.to_string()), &data.db_pool)
+            .await?
+        {
+            AcceptFollow::send(self.id, &followed, &actor, data).await?;
+            notifications::process_follow(&actor, &followed, false, &data.db_pool).await?;
         }
 
         Ok(())
