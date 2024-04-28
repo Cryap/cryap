@@ -256,12 +256,12 @@ pub async fn get_user_posts(
                 WHERE post_boost.actor_id = $2{} AND post_boost.visibility != 'direct'
             ) results {}
             ",
-            if actor_id.is_some() {
+            if actor_id.is_some() && user_id != actor_id.unwrap() {
                 "LEFT JOIN post_mention ON posts.id = post_mention.post_id AND post_mention.mentioned_user_id = $1"
             } else {
                 ""
             },
-            if actor_id.is_some() {
+            if actor_id.is_some() && user_id != actor_id.unwrap() {
                 format!(" AND (({}posts.visibility != 'direct') OR ((posts.visibility = 'private' OR posts.visibility = 'direct') AND post_mention.post_id IS NOT NULL))", if is_follower {
                     ""
                 } else {
