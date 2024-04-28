@@ -90,7 +90,7 @@ impl Post {
     ) -> anyhow::Result<Vec<User>> {
         let query = post_like::table
             .filter(post_like::post_id.eq(&self.id))
-            .inner_join(users::dsl::users.on(users::id.eq(post_like::actor_id)))
+            .inner_join(users::table.on(users::id.eq(post_like::actor_id)))
             .select(users::all_columns)
             .into_boxed();
         let query = paginate!(query, users::id, pagination);
@@ -105,7 +105,7 @@ impl Post {
     ) -> anyhow::Result<Vec<User>> {
         let query = post_boost::table
             .filter(post_boost::post_id.eq(&self.id))
-            .inner_join(users::dsl::users.on(users::id.eq(post_boost::actor_id)))
+            .inner_join(users::table.on(users::id.eq(post_boost::actor_id)))
             .select(users::all_columns)
             .into_boxed();
         let query = paginate!(query, users::id, pagination);
@@ -210,7 +210,7 @@ impl Post {
             published: Utc::now(),
         };
 
-        insert_into(bookmarks::dsl::bookmarks)
+        insert_into(bookmarks::table)
             .values(vec![bookmark.clone()])
             .on_conflict((bookmarks::actor_id, bookmarks::post_id))
             .do_nothing()
@@ -242,7 +242,7 @@ impl Post {
     ) -> anyhow::Result<Vec<User>> {
         Ok(post_mention::table
             .filter(post_mention::post_id.eq(&self.id))
-            .inner_join(users::dsl::users.on(users::id.eq(post_mention::mentioned_user_id)))
+            .inner_join(users::table.on(users::id.eq(post_mention::mentioned_user_id)))
             .filter(users::local.eq(true))
             .select(users::all_columns)
             .load::<User>(&mut db_pool.get().await?)

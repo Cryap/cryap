@@ -11,7 +11,7 @@ use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use db::{
     models::{Post, PostMention, User},
-    schema::{post_mention, posts},
+    schema::{post_mention, posts, users},
     types::{DbId, DbVisibility},
 };
 use diesel::{
@@ -233,9 +233,9 @@ impl Object for ApNote {
             return Err(anyhow!("Cannot federate local-only object"));
         }
 
-        let mentions: Vec<User> = db::schema::post_mention::dsl::post_mention
-            .filter(db::schema::post_mention::dsl::post_id.eq(self.id.clone()))
-            .inner_join(db::schema::users::dsl::users)
+        let mentions: Vec<User> = post_mention::table
+            .filter(post_mention::post_id.eq(self.id.clone()))
+            .inner_join(users::table)
             .select(User::as_select())
             .load::<User>(&mut data.db_pool.get().await?)
             .await?;

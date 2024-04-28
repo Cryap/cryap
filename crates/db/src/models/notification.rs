@@ -163,7 +163,7 @@ impl Notification {
         user_id: &DbId,
         db_pool: &Pool<AsyncPgConnection>,
     ) -> anyhow::Result<()> {
-        delete(notifications::dsl::notifications.filter(notifications::receiver_id.eq(user_id)))
+        delete(notifications::table.filter(notifications::receiver_id.eq(user_id)))
             .execute(&mut db_pool.get().await?)
             .await?;
         Ok(())
@@ -194,7 +194,7 @@ impl Notification {
     }
 
     pub async fn dismiss(&self, db_pool: &Pool<AsyncPgConnection>) -> anyhow::Result<()> {
-        delete(notifications::dsl::notifications.filter(notifications::id.eq(&self.id)))
+        delete(notifications::table.filter(notifications::id.eq(&self.id)))
             .execute(&mut db_pool.get().await?)
             .await?;
         Ok(())

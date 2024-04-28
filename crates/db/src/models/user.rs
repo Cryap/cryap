@@ -258,7 +258,7 @@ impl User {
     ) -> anyhow::Result<Vec<Self>> {
         let query = user_followers::table
             .filter(user_followers::follower_id.eq(&self.id))
-            .inner_join(users::dsl::users.on(users::id.eq(user_followers::actor_id)))
+            .inner_join(users::table.on(users::id.eq(user_followers::actor_id)))
             .select(users::all_columns)
             .into_boxed();
         let query = paginate!(query, users::id, pagination);
@@ -273,7 +273,7 @@ impl User {
     ) -> anyhow::Result<Vec<Self>> {
         let query = user_followers::table
             .filter(user_followers::actor_id.eq(&self.id))
-            .inner_join(users::dsl::users.on(users::id.eq(user_followers::follower_id)))
+            .inner_join(users::table.on(users::id.eq(user_followers::follower_id)))
             .select(users::all_columns)
             .into_boxed();
         let query = paginate!(query, users::id, pagination);
@@ -322,7 +322,7 @@ impl User {
         Ok(user_followers::table
             .filter(user_followers::follower_id.eq(&self.id))
             .filter(users::local.eq(false))
-            .inner_join(users::dsl::users.on(users::id.eq(user_followers::actor_id)))
+            .inner_join(users::table.on(users::id.eq(user_followers::actor_id)))
             .select(coalesce(users::shared_inbox_uri, users::inbox_uri))
             .distinct()
             .load::<String>(&mut db_pool.get().await?)
@@ -336,7 +336,7 @@ impl User {
     ) -> anyhow::Result<Vec<Post>> {
         let query = post_like::table
             .filter(post_like::actor_id.eq(&self.id))
-            .inner_join(posts::dsl::posts.on(posts::id.eq(post_like::post_id)))
+            .inner_join(posts::table.on(posts::id.eq(post_like::post_id)))
             .select(posts::all_columns)
             .order(post_like::published.desc())
             .into_boxed();
@@ -352,7 +352,7 @@ impl User {
     ) -> anyhow::Result<Vec<Post>> {
         let query = bookmarks::table
             .filter(bookmarks::actor_id.eq(&self.id))
-            .inner_join(posts::dsl::posts.on(posts::id.eq(bookmarks::post_id)))
+            .inner_join(posts::table.on(posts::id.eq(bookmarks::post_id)))
             .select(posts::all_columns)
             .order(bookmarks::published.desc())
             .into_boxed();

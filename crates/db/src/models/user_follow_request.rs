@@ -89,7 +89,7 @@ impl UserFollowRequest {
     ) -> anyhow::Result<Vec<User>> {
         let query = user_follow_requests::table
             .filter(user_follow_requests::follower_id.eq(user_id))
-            .inner_join(users::dsl::users.on(users::id.eq(user_follow_requests::actor_id)))
+            .inner_join(users::table.on(users::id.eq(user_follow_requests::actor_id)))
             .select(users::all_columns)
             .into_boxed();
         let query = paginate!(query, users::id, pagination);

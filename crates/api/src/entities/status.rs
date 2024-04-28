@@ -3,12 +3,7 @@ use std::sync::Arc;
 use db::{
     common::timelines::TimelineEntry,
     models::{Post, PostBoost, User},
-    schema::{
-        post_boost::{dsl as post_boost_dsl, dsl::post_boost},
-        post_like::{dsl as post_like_dsl, dsl::post_like},
-        post_mention::{dsl as post_mention_dsl, dsl::post_mention},
-        users::dsl::users,
-    },
+    schema::{post_boost, post_like, post_mention, users},
     types::{DbId, DbVisibility},
 };
 use diesel::{select, ExpressionMethods, QueryDsl, SelectableHelper};
@@ -77,12 +72,12 @@ impl Status {
         let mut conn = state.db_pool.get().await?;
 
         let (reblogs_count, favourites_count): (Option<i64>, Option<i64>) = select((
-            post_boost
-                .filter(post_boost_dsl::post_id.eq(&post.id))
+            post_boost::table
+                .filter(post_boost::post_id.eq(&post.id))
                 .count()
                 .single_value(),
-            post_like
-                .filter(post_like_dsl::post_id.eq(&post.id))
+            post_like::table
+                .filter(post_like::post_id.eq(&post.id))
                 .count()
                 .single_value(),
         ))
@@ -93,9 +88,9 @@ impl Status {
                                                                                  // 4294967296 boosts!
         let favourites_count: u32 = favourites_count.unwrap_or(0).try_into().unwrap();
 
-        let mentions: Vec<User> = post_mention
-            .filter(post_mention_dsl::post_id.eq(post.id.clone()))
-            .inner_join(users)
+        let mentions: Vec<User> = post_mention::table
+            .filter(post_mention::post_id.eq(post.id.clone()))
+            .inner_join(users::table)
             .select(User::as_select())
             .load(&mut conn)
             .await?;
