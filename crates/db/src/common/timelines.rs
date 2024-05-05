@@ -188,6 +188,11 @@ pub async fn get_user_posts(
             let mut query = posts::table
                 .filter(posts::author.eq(user_id))
                 .select(posts::all_columns)
+                .filter(
+                    posts::visibility
+                        .ne(DbVisibility::Private)
+                        .and(posts::visibility.ne(DbVisibility::Direct)),
+                )
                 .into_boxed();
 
             if exclude_replies {
@@ -267,6 +272,8 @@ pub async fn get_user_posts(
                 } else {
                     "posts.visibility != 'private' AND "
                 }).leak()
+            } else if actor_id.is_none() {
+                " AND posts.visibility != 'private' AND posts.visibility != 'direct'"
             } else {
                 ""
             },
