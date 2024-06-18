@@ -1,7 +1,14 @@
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use diesel::{
-    delete, dsl::sql, insert_into, prelude::*, result::Error::NotFound, select, sql_types::Bool,
+    delete,
+    dsl::{exists, sql},
+    insert_into,
+    pg::sql_types::Array,
+    prelude::*,
+    result::Error::NotFound,
+    select, sql_query,
+    sql_types::{BigInt, Bool, Bpchar},
 };
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
@@ -34,9 +41,20 @@ pub struct Post {
 }
 
 pub struct PostRelationship {
+    pub post_id: DbId,
     pub liked: bool,
     pub boosted: bool,
     pub bookmarked: bool,
+}
+
+#[derive(QueryableByName, Debug)]
+pub struct PostStats {
+    #[diesel(sql_type = Bpchar)]
+    pub post_id: DbId,
+    #[diesel(sql_type = BigInt)]
+    pub likes_count: i64,
+    #[diesel(sql_type = BigInt)]
+    pub boosts_count: i64,
 }
 
 impl Post {
@@ -75,6 +93,104 @@ impl Post {
             Err(NotFound) => Ok(None),
             Err(err) => Err(err.into()),
         }
+    }
+
+    pub async fn by_ids(
+        ids: Vec<&DbId>,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Vec<Option<Self>>> {
+        let posts = posts::table
+            .filter(posts::id.eq_any(&ids))
+            .load::<Self>(&mut db_pool.get().await?)
+            .await?;
+        Ok(ids
+            .into_iter()
+            .map(|id| posts.iter().find(|post| post.id == *id).cloned())
+            .collect())
+    }
+
+    pub async fn relationships(
+        ids: Vec<&DbId>,
+        user_id: &DbId,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Vec<PostRelationship>> {
+        let tuples = posts::table
+            .select((
+                posts::id,
+                exists(
+                    post_like::table
+                        .select(sql::<Bool>("true"))
+                        .filter(post_like::post_id.eq(posts::id))
+                        .filter(post_like::actor_id.eq(user_id)),
+                ),
+                exists(
+                    post_boost::table
+                        .select(sql::<Bool>("true"))
+                        .filter(post_boost::post_id.eq(posts::id))
+                        .filter(post_boost::actor_id.eq(user_id)),
+                ),
+                exists(
+                    bookmarks::table
+                        .select(sql::<Bool>("true"))
+                        .filter(bookmarks::post_id.eq(posts::id))
+                        .filter(bookmarks::actor_id.eq(user_id)),
+                ),
+            ))
+            .filter(posts::id.eq_any(ids))
+            .load::<(DbId, bool, bool, bool)>(&mut db_pool.get().await?)
+            .await?;
+
+        Ok(tuples
+            .into_iter()
+            .map(|(post_id, liked, boosted, bookmarked)| PostRelationship {
+                post_id,
+                liked,
+                boosted,
+                bookmarked,
+            })
+            .collect())
+    }
+
+    pub async fn stats(&self, db_pool: &Pool<AsyncPgConnection>) -> anyhow::Result<PostStats> {
+        let (likes_count, boosts_count): (Option<i64>, Option<i64>) = select((
+            post_like::table
+                .filter(post_like::post_id.eq(&self.id))
+                .count()
+                .single_value(),
+            post_boost::table
+                .filter(post_boost::post_id.eq(&self.id))
+                .count()
+                .single_value(),
+        ))
+        .first(&mut db_pool.get().await?)
+        .await?;
+
+        Ok(PostStats {
+            post_id: self.id.clone(),
+            likes_count: likes_count.unwrap_or(0),
+            boosts_count: boosts_count.unwrap_or(0),
+        })
+    }
+
+    pub async fn stats_by_vec(
+        ids: Vec<&DbId>,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Vec<PostStats>> {
+        Ok(sql_query(
+            "
+            SELECT
+                ids.id AS post_id,
+                COUNT(post_like.*) AS likes_count,
+                COUNT(post_boost.*) AS boosts_count
+            FROM (SELECT unnest($1) AS id) AS ids
+            LEFT JOIN post_like ON post_like.post_id = ids.id
+            LEFT JOIN post_boost ON post_boost.post_id = ids.id 
+            GROUP BY ids.id;
+            ",
+        )
+        .bind::<Array<Bpchar>, _>(ids)
+        .load::<PostStats>(&mut db_pool.get().await?)
+        .await?)
     }
 
     pub async fn author(&self, db_pool: &Pool<AsyncPgConnection>) -> anyhow::Result<User> {
@@ -192,6 +308,7 @@ impl Post {
         .await?;
 
         Ok(PostRelationship {
+            post_id: self.id.clone(),
             liked: liked.unwrap_or_default(),
             boosted: boosted.unwrap_or_default(),
             bookmarked: bookmarked.unwrap_or_default(),
@@ -234,6 +351,18 @@ impl Post {
         .await;
 
         Ok(())
+    }
+
+    pub async fn mentioned_users(
+        &self,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Vec<User>> {
+        Ok(post_mention::table
+            .filter(post_mention::post_id.eq(&self.id))
+            .inner_join(users::table)
+            .select(User::as_select())
+            .load(&mut db_pool.get().await?)
+            .await?)
     }
 
     pub async fn local_mentioned_users(

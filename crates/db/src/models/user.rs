@@ -1,10 +1,11 @@
 use chrono::{DateTime, Utc};
 use diesel::{
     dsl::sql,
+    pg::sql_types::Array,
     prelude::*,
     result::Error::NotFound,
     select, sql_query,
-    sql_types::{Bool, Bpchar, Varchar},
+    sql_types::{BigInt, Bool, Bpchar, Varchar},
 };
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
@@ -45,6 +46,16 @@ pub struct User {
     pub manually_approves_followers: bool,
     pub is_cat: bool,
     pub bot: bool,
+}
+
+#[derive(QueryableByName, Debug)]
+pub struct UserStats {
+    #[diesel(sql_type = Bpchar)]
+    pub user_id: DbId,
+    #[diesel(sql_type = BigInt)]
+    pub followers_count: i64,
+    #[diesel(sql_type = BigInt)]
+    pub following_count: i64,
 }
 
 #[derive(AsChangeset, Clone)]
@@ -88,6 +99,20 @@ impl User {
             Err(NotFound) => Ok(None),
             Err(err) => Err(err.into()),
         }
+    }
+
+    pub async fn by_ids(
+        ids: Vec<&DbId>,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Vec<Option<Self>>> {
+        let users = users::table
+            .filter(users::id.eq_any(&ids))
+            .load::<Self>(&mut db_pool.get().await?)
+            .await?;
+        Ok(ids
+            .into_iter()
+            .map(|id| users.iter().find(|user| user.id == *id).cloned())
+            .collect())
     }
 
     pub async fn local_by_name(
@@ -140,6 +165,43 @@ impl User {
         Ok(())
     }
 
+    pub async fn stats(&self, db_pool: &Pool<AsyncPgConnection>) -> anyhow::Result<UserStats> {
+        // TODO: Rewrite to DSL after Diesel 2.2 release with `case_when`
+        Ok(sql_query(
+            "
+            SELECT
+                $1 AS user_id,
+                SUM(CASE WHEN follower_id = $1 THEN 1 ELSE 0 END) AS followers_count,
+                SUM(CASE WHEN actor_id = $1 THEN 1 ELSE 0 END) AS following_count
+            FROM user_followers;
+            ",
+        )
+        .bind::<Bpchar, _>(&self.id)
+        .get_result::<UserStats>(&mut db_pool.get().await?)
+        .await?)
+    }
+
+    pub async fn stats_by_vec(
+        ids: Vec<&DbId>,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<Vec<UserStats>> {
+        Ok(sql_query(
+            "
+            SELECT
+                ids.id AS user_id,
+                SUM(CASE WHEN follower_id = ids.id THEN 1 ELSE 0 END) AS followers_count,
+                SUM(CASE WHEN actor_id = ids.id THEN 1 ELSE 0 END) AS following_count
+            FROM (SELECT unnest($1) AS id) AS ids
+            LEFT JOIN user_followers
+            ON user_followers.follower_id = ids.id OR user_followers.actor_id = ids.id
+            GROUP BY id;
+            ",
+        )
+        .bind::<Array<Bpchar>, _>(ids)
+        .load::<UserStats>(&mut db_pool.get().await?)
+        .await?)
+    }
+
     pub async fn posts(
         &self,
         pagination: Pagination,
@@ -172,6 +234,17 @@ impl User {
             .get_result(&mut conn)
             .await?;
         Ok(posts_count + boosts_count)
+    }
+
+    pub async fn follow_requests_count(
+        &self,
+        db_pool: &Pool<AsyncPgConnection>,
+    ) -> anyhow::Result<i64> {
+        Ok(user_follow_requests::table
+            .filter(user_follow_requests::follower_id.eq(&self.id))
+            .count()
+            .get_result(&mut db_pool.get().await?)
+            .await?)
     }
 
     pub async fn follows_by_id(

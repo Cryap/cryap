@@ -69,6 +69,7 @@ pub async fn http_get_get(
             &state.db_pool,
         )
         .await?,
+        &session.user_id,
         &state,
     )
     .await?;
