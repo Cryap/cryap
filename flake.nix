@@ -158,5 +158,7 @@
           taplo
         ];
       };
+
+      formatter = pkgs.alejandra;
     });
 }
