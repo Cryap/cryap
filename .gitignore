@@ -2,6 +2,7 @@
 /crates/web/target
 /migration/target
 /db
+/.direnv
 config.toml
 result*
 .env

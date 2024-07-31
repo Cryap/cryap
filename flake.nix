@@ -11,10 +11,7 @@
 
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
-      };
+      inputs.nixpkgs.follows = "nixpkgs";
     };
     flake-utils.url = "github:numtide/flake-utils";
 
@@ -144,16 +141,16 @@
         drv = my-crate;
       };
 
-      devShells.default = pkgs.mkShell {
-        inputsFrom = builtins.attrValues self.checks.${system};
+      devShells.default = craneLib.devShell {
+        checks = self.checks.${system};
 
         shellHook = ''
           export FRONTEND_DIST=$(pwd)/crates/frontend/dist
         '';
 
         # Extra inputs can be added here
-        nativeBuildInputs = with pkgs; [
-          toolchain
+        packages = with pkgs; [
+          just
           openssl
           pkg-config
           yarn
