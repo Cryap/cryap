@@ -1,6 +1,7 @@
 pub mod activitypub;
 pub mod posts;
 pub mod users;
+pub mod webfinger;
 
 use axum::Router;
 
@@ -11,4 +12,5 @@ pub fn ap(service_actor: ServiceActor) -> Router {
         .merge(activitypub::activitypub(service_actor))
         .merge(users::users())
         .merge(posts::posts())
+        .merge(webfinger::webfinger())
 }
