@@ -11,6 +11,8 @@ We plan that Cryap will combine the advantages of all popular ActivityPub microb
 We also plan to implement such functionality as [cat ears for avatars](https://github.com/mastodon/mastodon/issues/18337), articles and much more.
 # Status
 It is possible to publish posts without media, read them and interact with posts and users. There is support for OAuth2 (but no scopes yet). Soon we will reach a level that allows daily use and we will be able to start developing our own frontend. You can help us achieve this 😊
+# Federation
+See [FEDERATION.md](./FEDERATION.md).
 # Setup
 Cryap uses PostgreSQL and Redis for storage. To set it up manually:
 1. Install Rust, [Trunk](https://trunkrs.dev), PostgreSQL and Redis.
