@@ -7,9 +7,9 @@ Cryap is not yet ready for production use, so some implementations may not be co
 - [NodeInfo](https://nodeinfo.diaspora.softwares)
 
 ## Supported FEPs
-- [FEP-67ff: FEDERATION.md](https://codeberg.org/silverpill/feps/src/branch/main/67ff/fep-67ff.md)
+- [FEP-67ff: FEDERATION.md](https://codeberg.org/fediverse/fep/src/branch/main/fep/67ff/fep-67ff.md)
 - [FEP-f1d5: NodeInfo in Fediverse Software](https://codeberg.org/fediverse/fep/src/branch/main/fep/f1d5/fep-f1d5.md)
-- [FEP-fe34: Origin-based security model](https://codeberg.org/silverpill/feps/src/branch/main/fe34/fep-fe34.md)
+- [FEP-fe34: Origin-based security model](https://codeberg.org/fediverse/fep/src/branch/main/fep/fe34/fep-fe34.md)
 
 ## ActivityPub
 The following activities and object types are currently supported:
