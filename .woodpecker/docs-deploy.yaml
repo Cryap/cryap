@@ -9,9 +9,7 @@ steps:
     commands:
       - mkdocs build --site-dir build
       - cd build
-      - git clone git@codeberg.org:cryap/pages.git temp-pages
-      - cp -r temp-pages/.git .
-      - rm -rf temp-pages
+      - git init
   push:
     image: appleboy/drone-git-push
     settings:
@@ -22,6 +20,7 @@ steps:
       remote: git@codeberg.org:cryap/pages.git
       commit_message: deploy from main
       author_name: Deploy
+      force: true
       ssh_key:
         from_secret: pages_ssh_key
 runs_on: [success, failure]
