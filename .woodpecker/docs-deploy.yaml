@@ -9,7 +9,9 @@ steps:
     commands:
       - mkdocs build --site-dir build
       - cd build
-      - git init
+      - git clone git@codeberg.org:cryap/pages.git temp-pages
+      - cp -r temp-pages/.git .
+      - rm -rf temp-pages
   push:
     image: appleboy/drone-git-push
     settings:
