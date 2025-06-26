@@ -12,6 +12,7 @@ steps:
       - git clone https://codeberg.org/cryap/pages.git
       - cp -r pages/.git .
       - rm -rf pages
+      - cp docs/_redirects build/
       - git remote remove origin
   push:
     image: appleboy/drone-git-push
