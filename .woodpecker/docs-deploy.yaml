@@ -8,6 +8,7 @@ steps:
     image: squidfunk/mkdocs-material
     commands:
       - mkdocs build --site-dir build
+      - rm -rf .git
   push:
     image: appleboy/drone-git-push
     settings:
