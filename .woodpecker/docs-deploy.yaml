@@ -7,7 +7,7 @@ steps:
     image: squidfunk/mkdocs-material
     commands:
       - mkdocs build --site-dir build
-      - find . ! -name build -exec rm -rf {} +
+      - find . -mindepth 1 ! -name build -exec rm -rf {} +
       - mv ./build/* .
       - rm -rf build
       - git remote remove origin
