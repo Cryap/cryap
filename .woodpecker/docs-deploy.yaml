@@ -1,7 +1,7 @@
 when:
   event: push
   path:
-    include: ["docs/*", "mkdocs.yml"]
+    include: ["docs/**", "mkdocs.yml"]
   branch: main
 steps:
   build:
