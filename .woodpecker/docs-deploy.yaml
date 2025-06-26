@@ -8,21 +8,16 @@ steps:
     image: squidfunk/mkdocs-material
     commands:
       - mkdocs build --site-dir build
-      - pwd
-      - find . -mindepth 1 ! -name build -exec rm -rfv {} +
-      - mv ./build/* .
-      - rm -rf build
-      - git remote remove origin
   push:
     image: appleboy/drone-git-push
     settings:
       remote_name: origin
-      branch: pages
+      branch: main
+      path: build
       commit: true
       remote: git@codeberg.org:cryap/pages.git
       commit_message: deploy from main
       author_name: Deploy
-      local_ref: pages
       force: true
       ssh_key:
         from_secret: pages_ssh_key
