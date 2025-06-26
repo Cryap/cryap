@@ -156,6 +156,8 @@
           yarn
           trunk
           taplo
+          python313Packages.mkdocs-material
+          python313Packages.mkdocs
         ];
       };
 

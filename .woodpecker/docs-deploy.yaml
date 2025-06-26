@@ -1,0 +1,27 @@
+when:
+  event: push
+  path: ["docs/*", "mkdocs.yml"]
+  branch: main
+steps:
+  build:
+    image: squidfunk/mkdocs-material
+    commands:
+      - mkdocs build --site-dir build
+      - find . ! -name build -exec rm -rf {} +
+      - mv ./build/* .
+      - rm -rf build
+      - git remote remove origin
+  push:
+    image: appleboy/drone-git-push
+    settings:
+      remote_name: origin
+      branch: pages
+      commit: true
+      remote: git@codeberg.org:cryap/pages.git
+      commit_message: deploy from main
+      author_name: Deploy
+      local_ref: pages
+      force: true
+      ssh_key:
+        from_secret: pages_ssh_key
+runs_on: [success, failure]

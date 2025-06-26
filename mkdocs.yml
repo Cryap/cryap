@@ -1,0 +1,60 @@
+site_name: Cryap
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - attr_list
+theme:
+  name: material
+  favicon: assets/favicon.svg
+  icon:
+    logo: material/duck
+  custom_dir: docs/extend/
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: green
+      accent: light green
+      toggle:
+        icon: material/lightbulb
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: green
+      accent: light green
+      toggle:
+        icon: material/lightbulb-outline
+        name: Switch to light mode
+  features:
+    - header.autohide
+    - navigation.instant
+    - navigation.tabs
+    - navigation.footer
+    - content.code.copy
+    - content.code.annotate
+    - content.action.view
+    - content.action.edit
+repo_url: &repo_url https://codeberg.org/cryap/cryap
+edit_uri: edit/main/docs/
+repo_name: Source code
+extra:
+  social:
+    - icon: simple/codeberg
+      link: *repo_url
+      name: Codeberg
+    - icon: simple/github
+      link: https://github.com/cryap/cryap
+      name: GitHub
+    - icon: simple/mastodon
+      link: https://mastodon.social/@cryap
+      name: Mastodon
+    - icon: simple/matrix
+      link: https://matrix.to/#/#cryap:matrix.org
+      name: Matrix Space
