@@ -25,7 +25,7 @@ impl RpcRegisterUser {
         request: RpcRegisterUserData,
         data: &Data<Arc<AppState>>,
     ) -> RpcRegisterUserResponse {
-        let _ = users::register(
+        let user = users::register(
             request.name,
             request.password,
             request.bio,
@@ -33,7 +33,12 @@ impl RpcRegisterUser {
             data,
         )
         .await;
-
-        RpcRegisterUserResponse { ok: true }
+        match user {
+            Ok(_) => RpcRegisterUserResponse { ok: true },
+            Err(err) => {
+                log::error!("Error from RPC command, {:#?}", err);
+                RpcRegisterUserResponse { ok: false }
+            },
+        }
     }
 }
