@@ -15,4 +15,4 @@ Run `./cryap`. If everything is ok, you have finished setting up and launched th
 Read more: [creating systemd service](linux/systemd.md)
 
 ## What's next?
-- [Creating an account using RPC](../administation/rpc.md)
+- [Creating an account using RPC](../administation/rpc.md#registeruser)
