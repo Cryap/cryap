@@ -3,7 +3,8 @@ use std::sync::Arc;
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use ap::{objects::service_actor::ServiceActor, routers::ap};
 use api::routers::api;
-use axum::{routing::get, Router};
+//use axum::{routing::get, Router};
+use axum::Router;
 use tower_http::{
     cors::{Any, CorsLayer},
     normalize_path::{NormalizePath, NormalizePathLayer},
@@ -12,7 +13,7 @@ use tower_http::{
 use tower_layer::Layer;
 use web::AppState;
 
-use crate::frontend::ssr_handler;
+//use crate::frontend::ssr_handler;
 
 pub fn app(
     federation_config: FederationConfig<Arc<AppState>>,
@@ -30,8 +31,8 @@ pub fn app(
         Router::new()
             .merge(ap(service_actor))
             .merge(api(Arc::clone(&state)).with_state(state).layer(cors))
-            .merge(crate::frontend::resources())
-            .fallback_service(get(ssr_handler))
+            //.merge(crate::frontend::resources())
+            //.fallback_service(get(ssr_handler))
             .layer(FederationMiddleware::new(federation_config))
             .layer(TraceLayer::new_for_http()),
     )
