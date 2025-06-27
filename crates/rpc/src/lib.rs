@@ -25,6 +25,7 @@ pub async fn process(stream: UnixStream, data: Arc<Data<Arc<AppState>>>) -> anyh
         // Try to read request, this may still fail with `WouldBlock`
         // if the readiness event is a false positive.
         let request: String = match stream.try_read(&mut msg) {
+            Ok(0) => break Ok(()),
             Ok(n) if n > 0 => String::from_utf8_lossy(&msg[0..n]).to_string(),
             Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
                 continue;
@@ -38,7 +39,6 @@ pub async fn process(stream: UnixStream, data: Arc<Data<Arc<AppState>>>) -> anyh
         };
 
         let request = serde_json::from_str::<RpcCommandData>(&request);
-
         if let Ok(request) = request {
             let response = match request {
                 RpcCommandData::UserFetch(request) => {
