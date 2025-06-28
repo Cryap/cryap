@@ -67,7 +67,7 @@ pub async fn http_get_nodeinfo_2_1(
         name: Some("cryap".to_string()),
         version: Some(env!("CARGO_PKG_VERSION").to_string()),
         repository: Some(env!("CARGO_PKG_REPOSITORY").to_string()),
-        homepage: Some(env!("CARGO_PKG_REPOSITORY").to_string()), // No website yet :(
+        homepage: Some(env!("CARGO_PKG_HOMEPAGE").to_string()),
     }));
     Ok(Json(nodeinfo))
 }

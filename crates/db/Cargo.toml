@@ -3,6 +3,7 @@ name = "db"
 version.workspace = true
 edition.workspace = true
 repository.workspace = true
+homepage.workspace = true
 
 [dependencies]
 chrono = "0.4.26"
