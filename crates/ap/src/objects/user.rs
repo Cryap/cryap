@@ -104,7 +104,13 @@ impl Object for ApUser {
             summary: bio.or(Some("".to_string())),
             updated,
             published: Some(published),
-            endpoints: None,
+            endpoints: if let Some(shared_inbox_uri) = &self.shared_inbox_uri {
+                Some(Endpoints {
+                    shared_inbox: Url::parse(shared_inbox_uri)?,
+                })
+            } else {
+                None
+            },
             manually_approves_followers: self.manually_approves_followers,
             is_cat: self.is_cat,
             followers: Url::parse(&(ap_id.clone() + "/ap/followers"))?, // TODO

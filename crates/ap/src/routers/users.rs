@@ -24,7 +24,7 @@ use serde::{Deserialize, Serialize};
 use web::{errors::AppError, AppState};
 
 use crate::{
-    activities::{announce::Announce, UserInbox},
+    activities::{announce::Announce, Inbox},
     middleware,
     objects::{
         announce::ApAnnounce,
@@ -34,14 +34,31 @@ use crate::{
     },
 };
 
-pub async fn http_post_user_inbox(
+pub async fn http_post_shared_inbox(
     state: Data<Arc<AppState>>,
     activity_data: ActivityData,
 ) -> Result<impl IntoResponse, AppError> {
     Ok(
-        receive_activity::<WithContext<UserInbox>, ApUser, Arc<AppState>>(activity_data, &state)
+        receive_activity::<WithContext<Inbox>, ApUser, Arc<AppState>>(activity_data, &state)
             .await?,
     )
+}
+
+pub async fn http_post_user_inbox(
+    state: Data<Arc<AppState>>,
+    Path(name): Path<String>,
+    activity_data: ActivityData,
+) -> Result<impl IntoResponse, AppError> {
+    let user = User::local_by_name(&name, &state.db_pool).await?;
+    if let Some(_) = user {
+        Ok(
+            receive_activity::<WithContext<Inbox>, ApUser, Arc<AppState>>(activity_data, &state)
+                .await?
+                .into_response(),
+        )
+    } else {
+        Ok(StatusCode::NOT_FOUND.into_response())
+    }
 }
 
 #[derive(Deserialize)]
@@ -166,6 +183,10 @@ pub async fn http_get_user(
 
 pub fn users() -> Router {
     Router::new()
+        .route(
+            "/ap/inbox",
+            post(http_post_shared_inbox.layer(axum::middleware::from_fn(middleware::print_inbox))),
+        )
         .route(
             "/u/:name/ap/inbox",
             post(http_post_user_inbox.layer(axum::middleware::from_fn(middleware::print_inbox))),

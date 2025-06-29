@@ -52,7 +52,7 @@ pub async fn register(
         ap_id: ap_id.clone(),
         local: true,
         inbox_uri: format!("{ap_id}/ap/inbox"),
-        shared_inbox_uri: None, //Some(format!("https://{}/inbox", state.config.web.domain)),
+        shared_inbox_uri: Some(format!("https://{}/ap/inbox", state.config.web.domain)),
         outbox_uri: format!("{ap_id}/ap/outbox"),
         followers_uri: format!("{ap_id}/ap/followers"),
         name,

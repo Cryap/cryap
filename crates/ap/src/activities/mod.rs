@@ -20,7 +20,7 @@ pub mod update;
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(untagged)]
 #[enum_delegate::implement(ActivityHandler)]
-pub enum UserInbox {
+pub enum Inbox {
     Follow(follow::Follow),
     AcceptFollow(accept::follow::AcceptFollow),
     UndoFollow(undo::follow::UndoFollow),
