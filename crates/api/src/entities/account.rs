@@ -1,11 +1,8 @@
-use std::sync::Arc;
-
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use db::{models::User, types::DbVisibility};
 use serde::Serialize;
-use web::AppState;
 
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Serialize, Debug, PartialEq)]
 pub struct AccountSource {
     note: String,
     fields: Vec<()>,
@@ -16,10 +13,11 @@ pub struct AccountSource {
 }
 
 // TODO: Fully implement https://docs.joinmastodon.org/entities/Account/
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Serialize, Debug, PartialEq)]
 pub struct Account {
     pub id: String,
     pub url: String,
+    pub uri: String,
     pub username: String,
     pub acct: String,
     pub display_name: String,
@@ -29,6 +27,10 @@ pub struct Account {
     pub note: String,
     pub followers_count: u32,
     pub following_count: u32,
+    pub statuses_count: u32,
+    pub last_status_at: Option<NaiveDate>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<AccountSource>,
 
     pub header: String,
@@ -40,54 +42,11 @@ pub struct Account {
 }
 
 impl Account {
-    pub async fn build(
-        user: User,
-        state: &Arc<AppState>,
-        with_source: bool,
-    ) -> anyhow::Result<Self> {
-        let stats = user.stats(&state.db_pool).await?;
-        let follow_requests_count = if with_source {
-            Some(user.follow_requests_count(&state.db_pool).await?)
-        } else {
-            None
-        };
-
-        Ok(Self::raw_build(
-            user,
-            stats.followers_count,
-            stats.following_count,
-            follow_requests_count,
-        ))
-    }
-
-    pub async fn build_from_vec(
-        users: Vec<User>,
-        state: &Arc<AppState>,
-    ) -> anyhow::Result<Vec<Self>> {
-        let stats =
-            User::stats_by_vec(users.iter().map(|user| &user.id).collect(), &state.db_pool).await?;
-
-        Ok(users
-            .into_iter()
-            .map(|user| {
-                let stats = stats
-                    .iter()
-                    .find(|stats| stats.user_id == user.id)
-                    .expect("Each user must be in the result of the request");
-                Self::raw_build(user, stats.followers_count, stats.following_count, None)
-            })
-            .collect())
-    }
-
-    fn raw_build(
-        user: User,
-        followers_count: i64,
-        following_count: i64,
-        follow_requests_count: Option<i64>,
-    ) -> Self {
+    pub fn new(user: User, with_source: bool) -> Self {
         Self {
             id: user.id.to_string(),
-            url: user.ap_id, // TODO: Discuss
+            url: user.ap_id.clone(), // TODO: Discuss
+            uri: user.ap_id,
             username: user.name.clone(),
             display_name: user.display_name.unwrap_or(user.name.clone()),
             locked: user.manually_approves_followers,
@@ -99,17 +58,21 @@ impl Account {
             },
             created_at: user.published,
             note: user.bio.clone().unwrap_or_default(),
-            followers_count: followers_count.try_into().unwrap(),
-            following_count: following_count.try_into().unwrap(),
+            followers_count: user.followers_count.try_into().unwrap(),
+            following_count: user.following_count.try_into().unwrap(),
+            statuses_count: user.posts_count.try_into().unwrap(),
+            last_status_at: user
+                .last_post_published
+                .map(|date_time| date_time.date_naive()),
 
-            source: if let Some(follow_requests_count) = follow_requests_count {
+            source: if with_source {
                 Some(AccountSource {
                     sensitive: false,
                     note: user.bio.unwrap_or_default(),
                     fields: vec![],
                     privacy: DbVisibility::Public,
                     language: "en".to_string(),
-                    follow_requests_count: follow_requests_count.try_into().unwrap(),
+                    follow_requests_count: user.follow_requests_count.try_into().unwrap(),
                 })
             } else {
                 None
@@ -122,5 +85,12 @@ impl Account {
 
             is_cat: user.is_cat,
         }
+    }
+
+    pub fn new_from_vec(users: Vec<User>) -> Vec<Self> {
+        users
+            .into_iter()
+            .map(|user| Self::new(user, false))
+            .collect()
     }
 }

@@ -27,8 +27,7 @@ impl Notification {
         notification: DbNotification,
         state: &Arc<AppState>,
     ) -> anyhow::Result<Self> {
-        let account =
-            Account::build(notification.actor(&state.db_pool).await?, state, false).await?;
+        let account = Account::new(notification.actor(&state.db_pool).await?, false);
         let status = match notification.post_id {
             Some(_) => Some(
                 Status::build(
@@ -49,7 +48,7 @@ impl Notification {
         receiver_id: &DbId,
         state: &Arc<AppState>,
     ) -> anyhow::Result<Vec<Self>> {
-        let accounts = Account::build_from_vec(
+        let accounts =
             User::by_ids(
                 notifications
                     .iter()
@@ -59,11 +58,8 @@ impl Notification {
             )
             .await?
             .into_iter()
-            .map(|user| user.expect("complete deletion of a user is not possible; its presence is checked before creating a notification"))
-            .collect::<Vec<User>>(),
-            state,
-        )
-        .await?;
+            .map(|user| Account::new(user.expect("complete deletion of a user is not possible; its presence is checked before creating a notification"), false))
+            .collect::<Vec<Account>>();
 
         let post_ids: Vec<Option<&DbId>> = notifications
             .iter()

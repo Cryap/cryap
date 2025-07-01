@@ -30,11 +30,9 @@ pub async fn http_get_follow_requests(
     Extension(session): Extension<Session>,
     Query(pagination): Query<PaginationQuery>,
 ) -> Result<impl IntoResponse, AppError> {
-    let accounts = Account::build_from_vec(
+    let accounts = Account::new_from_vec(
         UserFollowRequest::by_user(&session.user_id, pagination.into(), &state.db_pool).await?,
-        &state,
-    )
-    .await?;
+    );
 
     if accounts.is_empty() {
         Ok(Json(accounts).into_response())

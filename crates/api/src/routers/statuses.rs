@@ -137,11 +137,8 @@ pub async fn http_get_favourited_by(
             },
         }
 
-        let accounts = Account::build_from_vec(
-            post.liked_by(pagination.into(), &state.db_pool).await?,
-            &state,
-        )
-        .await?;
+        let accounts =
+            Account::new_from_vec(post.liked_by(pagination.into(), &state.db_pool).await?);
 
         if accounts.is_empty() {
             Ok(Json(accounts).into_response())
@@ -194,11 +191,8 @@ pub async fn http_get_reblogged_by(
             },
         }
 
-        let accounts = Account::build_from_vec(
-            post.boosted_by(pagination.into(), &state.db_pool).await?,
-            &state,
-        )
-        .await?;
+        let accounts =
+            Account::new_from_vec(post.boosted_by(pagination.into(), &state.db_pool).await?);
 
         if accounts.is_empty() {
             Ok(Json(accounts).into_response())

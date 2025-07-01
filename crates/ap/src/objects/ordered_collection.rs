@@ -10,7 +10,7 @@ pub struct OrderedCollection {
     #[serde(rename = "type")]
     pub kind: OrderedCollectionType,
     pub id: String,
-    pub total_items: i64,
+    pub total_items: i32,
     pub first: String,
 }
 
@@ -20,7 +20,7 @@ pub struct OrderedCollectionPage<T: Serialize> {
     #[serde(rename = "type")]
     pub kind: OrderedCollectionPageType,
     pub id: String,
-    pub total_items: i64,
+    pub total_items: i32,
     pub next: Option<String>,
     pub prev: Option<String>,
     pub part_of: String,

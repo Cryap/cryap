@@ -107,7 +107,7 @@ pub async fn http_get_user_outbox(
                         user.name,
                         request.uri().query().unwrap_or("")
                     ),
-                    total_items: user.posts_count(&state.db_pool).await?,
+                    total_items: user.posts_count,
                     next: if let Some(last) = timeline.last() {
                         Some(format!(
                             "https://{}/u/{}/ap/outbox?max_id={}&page=true",
@@ -149,7 +149,7 @@ pub async fn http_get_user_outbox(
                     "https://{}/u/{}/ap/outbox",
                     state.config.web.domain, user.name
                 ),
-                total_items: user.posts_count(&state.db_pool).await?,
+                total_items: user.posts_count,
                 first: format!(
                     "https://{}/u/{}/ap/outbox?page=true",
                     state.config.web.domain, user.name

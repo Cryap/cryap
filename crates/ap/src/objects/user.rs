@@ -8,7 +8,11 @@ use activitypub_federation::{
 };
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use db::{models::User, schema::users, types::DbId};
+use db::{
+    models::{User, UserInsert},
+    schema::users,
+    types::DbId,
+};
 use diesel::{insert_into, query_dsl::QueryDsl, result::Error::NotFound, ExpressionMethods};
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
@@ -130,7 +134,7 @@ impl Object for ApUser {
     async fn from_json(json: Self::Kind, data: &Data<Self::DataType>) -> Result<Self, Self::Error> {
         let mut conn = data.db_pool.get().await?;
 
-        let user = User {
+        let user = UserInsert {
             id: DbId::from(svix_ksuid::Ksuid::new(
                 json.published
                     .map(|f| time::OffsetDateTime::from_unix_timestamp(f.timestamp()).unwrap()),

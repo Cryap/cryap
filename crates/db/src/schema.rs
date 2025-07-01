@@ -215,6 +215,11 @@ diesel::table! {
         manually_approves_followers -> Bool,
         is_cat -> Bool,
         bot -> Bool,
+        followers_count -> Int4,
+        following_count -> Int4,
+        follow_requests_count -> Int4,
+        posts_count -> Int4,
+        last_post_published -> Nullable<Timestamptz>,
     }
 }
 

@@ -1,11 +1,10 @@
 use chrono::{DateTime, Utc};
 use diesel::{
     dsl::sql,
-    pg::sql_types::Array,
     prelude::*,
     result::Error::NotFound,
     select, sql_query,
-    sql_types::{BigInt, Bool, Bpchar, Varchar},
+    sql_types::{Bool, Bpchar, Varchar},
 };
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 
@@ -21,9 +20,7 @@ use crate::{
     utils::coalesce,
 };
 
-#[derive(
-    Queryable, Identifiable, Selectable, Insertable, AsChangeset, Debug, PartialEq, Clone, Eq,
-)]
+#[derive(Queryable, Identifiable, Selectable, Debug, PartialEq, Clone, Eq)]
 #[diesel(table_name = users)]
 pub struct User {
     pub id: DbId,
@@ -46,16 +43,41 @@ pub struct User {
     pub manually_approves_followers: bool,
     pub is_cat: bool,
     pub bot: bool,
+    /// Updated by database triggers defined in `../../migrations/2025-06-29-211313_save_user_stats/up.sql`
+    pub followers_count: i32,
+    /// Updated by database triggers defined in `../../migrations/2025-06-29-211313_save_user_stats/up.sql`
+    pub following_count: i32,
+    /// Updated by database triggers defined in `../../migrations/2025-06-29-211313_save_user_stats/up.sql`
+    pub follow_requests_count: i32,
+    /// Updated by database triggers defined in `../../migrations/2025-06-29-211313_save_user_stats/up.sql`
+    pub posts_count: i32,
+    /// Updated by database triggers defined in `../../migrations/2025-06-29-211313_save_user_stats/up.sql`
+    pub last_post_published: Option<DateTime<Utc>>,
 }
 
-#[derive(QueryableByName, Debug)]
-pub struct UserStats {
-    #[diesel(sql_type = Bpchar)]
-    pub user_id: DbId,
-    #[diesel(sql_type = BigInt)]
-    pub followers_count: i64,
-    #[diesel(sql_type = BigInt)]
-    pub following_count: i64,
+#[derive(Clone, Insertable, AsChangeset)]
+#[diesel(table_name = users)]
+pub struct UserInsert {
+    pub id: DbId,
+    pub ap_id: String,
+    pub local: bool,
+    pub inbox_uri: String,
+    pub shared_inbox_uri: Option<String>,
+    pub outbox_uri: String,
+    pub followers_uri: String,
+    pub name: String,
+    pub instance: String,
+    pub display_name: Option<String>,
+    pub bio: Option<String>,
+    pub password_encrypted: Option<String>,
+    pub admin: bool,
+    pub public_key: String,
+    pub private_key: Option<String>,
+    pub published: DateTime<Utc>,
+    pub updated: Option<DateTime<Utc>>,
+    pub manually_approves_followers: bool,
+    pub is_cat: bool,
+    pub bot: bool,
 }
 
 #[derive(AsChangeset, Clone)]
@@ -165,43 +187,6 @@ impl User {
         Ok(())
     }
 
-    pub async fn stats(&self, db_pool: &Pool<AsyncPgConnection>) -> anyhow::Result<UserStats> {
-        // TODO: Rewrite to DSL after Diesel 2.2 release with `case_when`
-        Ok(sql_query(
-            "
-            SELECT
-                $1 AS user_id,
-                SUM(CASE WHEN follower_id = $1 THEN 1 ELSE 0 END) AS followers_count,
-                SUM(CASE WHEN actor_id = $1 THEN 1 ELSE 0 END) AS following_count
-            FROM user_followers;
-            ",
-        )
-        .bind::<Bpchar, _>(&self.id)
-        .get_result::<UserStats>(&mut db_pool.get().await?)
-        .await?)
-    }
-
-    pub async fn stats_by_vec(
-        ids: Vec<&DbId>,
-        db_pool: &Pool<AsyncPgConnection>,
-    ) -> anyhow::Result<Vec<UserStats>> {
-        Ok(sql_query(
-            "
-            SELECT
-                ids.id AS user_id,
-                SUM(CASE WHEN follower_id = ids.id THEN 1 ELSE 0 END) AS followers_count,
-                SUM(CASE WHEN actor_id = ids.id THEN 1 ELSE 0 END) AS following_count
-            FROM (SELECT unnest($1) AS id) AS ids
-            LEFT JOIN user_followers
-            ON user_followers.follower_id = ids.id OR user_followers.actor_id = ids.id
-            GROUP BY id;
-            ",
-        )
-        .bind::<Array<Bpchar>, _>(ids)
-        .load::<UserStats>(&mut db_pool.get().await?)
-        .await?)
-    }
-
     pub async fn posts(
         &self,
         pagination: Pagination,
@@ -219,32 +204,6 @@ impl User {
             db_pool,
         )
         .await
-    }
-
-    pub async fn posts_count(&self, db_pool: &Pool<AsyncPgConnection>) -> anyhow::Result<i64> {
-        let mut conn = db_pool.get().await?;
-        let posts_count: i64 = posts::table
-            .filter(posts::author.eq(&self.id))
-            .count()
-            .get_result(&mut conn)
-            .await?;
-        let boosts_count: i64 = post_boost::table
-            .filter(post_boost::actor_id.eq(&self.id))
-            .count()
-            .get_result(&mut conn)
-            .await?;
-        Ok(posts_count + boosts_count)
-    }
-
-    pub async fn follow_requests_count(
-        &self,
-        db_pool: &Pool<AsyncPgConnection>,
-    ) -> anyhow::Result<i64> {
-        Ok(user_follow_requests::table
-            .filter(user_follow_requests::follower_id.eq(&self.id))
-            .count()
-            .get_result(&mut db_pool.get().await?)
-            .await?)
     }
 
     pub async fn follows_by_id(

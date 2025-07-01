@@ -91,7 +91,7 @@ impl Status {
         };
 
         let mentions = post.mentioned_users(&state.db_pool).await?;
-        let account = Account::build(post.author(&state.db_pool).await?, state, false).await?;
+        let account = Account::new(post.author(&state.db_pool).await?, false);
         let relationship = if let Some(user_id) = user_id {
             Some(post.relationship(&user_id, &state.db_pool).await?.into())
         } else {
@@ -125,7 +125,7 @@ impl Status {
             state,
         )
         .await?;
-        let author = Account::build(boost.author(&state.db_pool).await?, state, false).await?;
+        let author = Account::new(boost.author(&state.db_pool).await?, false);
 
         Ok(Self::raw_boost_build(boost, status, author))
     }
@@ -135,7 +135,7 @@ impl Status {
         user_id: Option<&DbId>,
         state: &Arc<AppState>,
     ) -> anyhow::Result<Vec<Self>> {
-        let accounts = Account::build_from_vec(
+        let accounts =
             User::by_ids(
                 posts
                     .iter()
@@ -145,11 +145,8 @@ impl Status {
             )
             .await?
             .into_iter()
-            .map(|user| user.expect("complete deletion of a user is not possible; its presence is checked before creating a post"))
-            .collect::<Vec<User>>(),
-            state,
-        )
-        .await?;
+            .map(|user| Account::new(user.expect("complete deletion of a user is not possible; its presence is checked before creating a post"), false))
+            .collect::<Vec<Account>>();
 
         let stats =
             Post::stats_by_vec(posts.iter().map(|post| &post.id).collect(), &state.db_pool).await?;
@@ -228,7 +225,7 @@ impl Status {
         user_id: Option<&DbId>,
         state: &Arc<AppState>,
     ) -> anyhow::Result<Vec<Self>> {
-        let post_accounts = Account::build_from_vec(
+        let post_accounts =
             User::by_ids(
                 entries
                     .iter()
@@ -240,13 +237,10 @@ impl Status {
             )
             .await?
             .into_iter()
-            .map(|user| user.expect("complete deletion of a user is not possible; its presence is checked before creating a post"))
-            .collect::<Vec<User>>(),
-            state,
-        )
-        .await?;
+            .map(|user| Account::new(user.expect("complete deletion of a user is not possible; its presence is checked before creating a post"), false))
+            .collect::<Vec<Account>>();
 
-        let boost_accounts = Account::build_from_vec(
+        let boost_accounts =
             User::by_ids(
                 entries
                     .iter()
@@ -259,11 +253,8 @@ impl Status {
             )
             .await?
             .into_iter()
-            .map(|user| user.expect("complete deletion of a user is not possible; its presence is checked before creating a boost"))
-            .collect::<Vec<User>>(),
-            state,
-        )
-        .await?;
+            .map(|user| Account::new(user.expect("complete deletion of a user is not possible; its presence is checked before creating a boost"), false))
+            .collect::<Vec<Account>>();
         let mut boost_accounts_iter = boost_accounts.into_iter();
         let boost_accounts: Vec<Option<Account>> = entries
             .iter()

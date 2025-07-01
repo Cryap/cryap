@@ -10,7 +10,11 @@ use argon2::{
     Argon2,
 };
 use chrono::Utc;
-use db::{models::user::User, schema::users, types::DbId};
+use db::{
+    models::{User, UserInsert},
+    schema::users,
+    types::DbId,
+};
 use diesel::{insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use url::Url;
@@ -47,7 +51,7 @@ pub async fn register(
         Err(_) => return Err(anyhow!("password hashing failed")),
     };
 
-    let user = User {
+    let user = UserInsert {
         id: DbId::default(),
         ap_id: ap_id.clone(),
         local: true,

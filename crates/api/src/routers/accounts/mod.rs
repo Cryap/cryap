@@ -36,10 +36,7 @@ pub async fn http_get_verify_credentials(
     state: State<Arc<AppState>>,
     Extension(session): Extension<Session>,
 ) -> Result<impl IntoResponse, AppError> {
-    Ok(
-        Json(Account::build(session.user(&state.db_pool).await?, &state, true).await?)
-            .into_response(),
-    )
+    Ok(Json(Account::new(session.user(&state.db_pool).await?, true)).into_response())
 }
 
 #[derive(Deserialize)]
@@ -132,7 +129,7 @@ pub async fn http_patch_update_credentials(
         users::distribute_update(&user, &state).await?;
     }
 
-    Ok(Json(Account::build(user, &state, true).await?).into_response())
+    Ok(Json(Account::new(user, true)).into_response())
 }
 
 #[derive(Deserialize)]
@@ -153,7 +150,7 @@ pub async fn http_get_lookup(
     };
 
     match user {
-        Some(user) => Ok(Json(Account::build(user, &state, false).await?).into_response()),
+        Some(user) => Ok(Json(Account::new(user, false)).into_response()),
         None => Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()),
     }
 }
@@ -166,7 +163,7 @@ pub async fn http_get_get(
     let id = DbId::from(id);
     let user = User::by_id(&id, &state.db_pool).await?;
     match user {
-        Some(user) => Ok(Json(Account::build(user, &state, false).await?).into_response()),
+        Some(user) => Ok(Json(Account::new(user, false)).into_response()),
         None => Ok(ApiError::new("Record not found", StatusCode::NOT_FOUND).into_response()),
     }
 }
@@ -243,11 +240,8 @@ pub async fn http_get_followers(
     let user = User::by_id(&id, &state.db_pool).await?;
 
     if let Some(user) = user {
-        let accounts = Account::build_from_vec(
-            user.followers(pagination.into(), &state.db_pool).await?,
-            &state,
-        )
-        .await?;
+        let accounts =
+            Account::new_from_vec(user.followers(pagination.into(), &state.db_pool).await?);
 
         if accounts.is_empty() {
             Ok(Json(accounts).into_response())
@@ -278,11 +272,8 @@ pub async fn http_get_following(
     let user = User::by_id(&id, &state.db_pool).await?;
 
     if let Some(user) = user {
-        let accounts = Account::build_from_vec(
-            user.following(pagination.into(), &state.db_pool).await?,
-            &state,
-        )
-        .await?;
+        let accounts =
+            Account::new_from_vec(user.following(pagination.into(), &state.db_pool).await?);
 
         if accounts.is_empty() {
             Ok(Json(accounts).into_response())
